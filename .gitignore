@@ -1,0 +1,33 @@
+# 打包文件
+backend/target/
+frontend/dist/
+frontend/node_modules/
+
+# Docker相关文件
+docker-compose.yml
+docker-compose.override.yml
+backend/Dockerfile
+frontend/Dockerfile
+nginx.conf
+
+# 敏感信息文件
+**/application.yml
+**/schema.sql
+
+# IDE相关文件
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+logs/
+*.log
+
+# 临时文件
+tmp/
+temp/

@@ -1,0 +1,59 @@
+LIS系统 - 源码包
+
+## 包内容
+
+- backend/ - Spring Boot后端源码
+- frontend/ - Vue3前端源码
+- pom.xml - Maven项目配置
+- package.json - 前端项目配置
+- build.bat - 快速构建脚本（Windows）
+- build.sh - 快速构建脚本（Linux/Mac）
+- maven-dependencies/ - 核心依赖（部分）
+- SOURCE_GUIDE_ZH.txt - 源码说明（中文）
+
+## 环境要求
+
+- JDK 17+
+- Maven 3.6+
+- Node.js 18+
+- MySQL 8.0
+
+## 构建步骤
+
+### 方式一：使用构建脚本（推荐）
+
+双击或运行：
+- Windows: build.bat
+- Linux/Mac: ./build.sh
+
+### 方式二：手动构建
+
+后端：
+cd backend
+mvn clean package -DskipTests
+
+前端：
+cd frontend
+npm install
+npm run build
+
+## 数据库配置
+
+编辑 backend/src/main/resources/application.yml
+
+## 快速启动
+
+1. 创建数据库：CREATE DATABASE lisdata;
+2. 执行 database/schema.sql 初始化表
+3. 修改 application.yml 数据库配置
+4. cd backend && mvn clean package -DskipTests
+5. java -jar target/lis-open-java.jar
+6. cd frontend && npm install && npm run dev
+7. 访问 http://localhost:3000，登录：admin / admin123
+
+## 默认账号
+
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
+| admin | admin123 | 系统管理员 |
+| test | test | 测试用户 |
