@@ -7,7 +7,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://mysql8.0:3306/lisdata?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: xZ_TTSL123
+    password: ${DB_PASSWORD:123456}
 
   # SQL初始化配置
   sql:
