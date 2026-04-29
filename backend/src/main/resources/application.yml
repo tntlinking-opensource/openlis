@@ -1,13 +1,13 @@
 spring:
   application:
     name: lis-open-java
-  
-  # MySQL数据库配置（当前使用）
+
+  # MySQL数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://mysql8.0:3306/lisdata?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: xZ_TTSL123
+    password: ${DB_PASSWORD:123456}
 
   # SQL初始化配置
   sql:
@@ -16,12 +16,12 @@ spring:
       schema-locations: classpath:schema.sql
       continue-on-error: true
 
-  # H2数据库配置（已移除）
+  # H2数据库配置（开发环境使用）
   # datasource:
   #   driver-class-name: org.h2.Driver
   #   url: jdbc:h2:file:./data/lisdb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
 
-  # SQL Server数据库配置（已移除）
+  # SQL Server数据库配置（如需使用请取消注释）
   # datasource:
   #   driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   #   url: jdbc:sqlserver://localhost:1433
@@ -38,9 +38,9 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
-      # 注意：sys_czydm 表的 sybz 字段：1=使用中，0=停用
-      # 如果使用逻辑删除，应该：logic-delete-value: 0, logic-not-delete-value: 1
-      # 但为了兼容旧系统，暂时不使用逻辑删除，直接查询所有记录
+      # 逻辑删除配置（如 sys_czydm 的 sybz 字段：1=使用，0=停用）
+      # 如需使用逻辑删除，请配置：logic-delete-value: 0, logic-not-delete-value: 1
+      # 目前项目未使用逻辑删除，无需配置
       # logic-delete-field: sybz
       # logic-delete-value: 0
       # logic-not-delete-value: 1
