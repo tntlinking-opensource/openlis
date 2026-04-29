@@ -15,6 +15,23 @@
       </el-form>
       <div class="version-info">版本号：{{ version }}</div>
     </div>
+    
+    <div class="footer">
+      Copyright © 2025 湖北天天数链技术有限公司
+      <div style="margin-top: 2px;">
+        <a
+          href="https://open.tntlinking.com/communityTreaty"
+          target="_blank"
+          rel="noopener noreferrer"
+          style="
+            color: #667eea;
+            text-decoration: none;
+            font-size: 12px;
+          ">
+          本系统软件源代码许可来源于《天天开源软件（社区版）许可协议》
+        </a>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -82,6 +99,7 @@ const handleLogin = async () => {
   align-items: center;
   height: 100vh;
   background: #f5f5f5;
+  position: relative;
 }
 
 .login-box {
@@ -103,6 +121,19 @@ const handleLogin = async () => {
   margin-top: 20px;
   font-size: 12px;
   color: #999;
+}
+
+.footer {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  text-align: right;
+  font-size: 12px;
+  color: #666;
+}
+
+.footer a:hover {
+  text-decoration: underline;
 }
 </style>
 
