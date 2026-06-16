@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtYqxmzhMapper">
+
+  <select id="findCombosByInstrument" resultType="java.util.Map">
+    SELECT yq.zhid, z.zhmc, yq.zhsx FROM bgxt_yqxmzh yq
+    LEFT JOIN bgxt_xmzh_zb z ON yq.zhid = z.zhid
+    WHERE yq.sb_djid = #{sbDjid} ORDER BY yq.zhsx
+  </select>
+
+  <select id="existsBySbDjidAndZhid" resultType="java.util.Map">
+    SELECT sb_djid FROM bgxt_yqxmzh WHERE sb_djid = #{sbDjid} AND zhid = #{zhid}
+  </select>
+
+  <select id="getMaxZhsxBySbDjid" resultType="java.lang.Integer">
+    SELECT IFNULL(MAX(zhsx), 0) FROM bgxt_yqxmzh WHERE sb_djid = #{sbDjid}
+  </select>
+
+  <insert id="assignCombo">
+    INSERT INTO bgxt_yqxmzh (sb_djid, zhid, zhsx) VALUES (#{sbDjid}, #{zhid}, #{zhsx})
+  </insert>
+
+  <delete id="removeCombo">
+    DELETE FROM bgxt_yqxmzh WHERE sb_djid = #{instId} AND zhid = #{comboId}
+  </delete>
+
+  <delete id="deleteByZhid">
+    DELETE FROM bgxt_yqxmzh WHERE zhid = #{zhid}
+  </delete>
+
+  <select id="selectByZhid" resultType="map">
+    SELECT yq.sb_djid, s.sbmc, s.sbdm
+    FROM bgxt_yqxmzh yq
+    LEFT JOIN sys_sbdjb s ON yq.sb_djid = s.sb_djid
+    WHERE yq.zhid = #{zhid}
+    ORDER BY yq.zhsx
+  </select>
+
+  <insert id="insertZhidSbDjid">
+    INSERT INTO bgxt_yqxmzh (zhid, sb_djid) VALUES (#{zhid}, #{sbDjid})
+  </insert>
+
+  <delete id="deleteByZhidAndSbDjid">
+    DELETE FROM bgxt_yqxmzh WHERE zhid = #{zhid} AND sb_djid = #{sbDjid}
+  </delete>
+
+</mapper>

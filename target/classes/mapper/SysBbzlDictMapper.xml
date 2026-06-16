@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysBbzlDictMapper">
+
+    <select id="listSpecimenTypes" resultType="map">
+        SELECT MIN(bm) AS bm, bmsm, MIN(pym) AS pym, MIN(qtdm) AS qtdm, MIN(xssx) AS xssx, MIN(whonet) AS whonet, MIN(his_bmdm) AS his_bmdm, MIN(rqdm) AS rqdm, MIN(rqlx) AS rqlx, MIN(cjyq) AS cjyq
+        FROM sys_bbzl_dict WHERE 1=1
+        <if test='keyword != null and keyword != ""'>
+            AND (bmsm LIKE CONCAT('%',#{keyword},'%') OR pym LIKE CONCAT('%',#{keyword},'%') OR qtdm LIKE CONCAT('%',#{keyword},'%'))
+        </if>
+        GROUP BY bmsm
+        ORDER BY CASE WHEN MIN(xssx) IS NULL OR MIN(xssx) = 0 THEN 9999 ELSE MIN(xssx) END, MIN(pym)
+    </select>
+
+    <insert id="insertSpecimenType">
+        INSERT INTO sys_bbzl_dict (bmsm, pym, qtdm, xssx, whonet, his_bmdm, rqdm, rqlx, cjyq)
+        VALUES (#{bmsm}, #{pym}, #{qtdm}, #{xssx}, #{whonet}, #{hisBmdm}, #{rqdm}, #{rqlx}, #{cjyq})
+    </insert>
+
+    <update id="updateSpecimenType">
+        UPDATE sys_bbzl_dict
+        SET bmsm=#{bmsm}, pym=#{pym}, qtdm=#{qtdm}, xssx=#{xssx},
+            whonet=#{whonet}, his_bmdm=#{hisBmdm}, rqdm=#{rqdm}, rqlx=#{rqlx}, cjyq=#{cjyq}
+        WHERE bm=#{bm}
+    </update>
+
+    <delete id="deleteSpecimenType">
+        DELETE FROM sys_bbzl_dict WHERE bm = #{bm}
+    </delete>
+
+</mapper>

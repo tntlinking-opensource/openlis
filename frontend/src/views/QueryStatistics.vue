@@ -48,6 +48,7 @@
           <el-button type="primary" @click="handleQuery">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
           <el-button type="success" @click="handlePrint">打印</el-button>
+          <el-button type="warning" @click="exportToExcel">导出Excel</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -66,6 +67,8 @@
         stripe
         height="350"
         v-loading="detailLoading"
+        highlight-current-row
+        @row-click="handleRowClick"
       >
         <el-table-column prop="barcode" label="条码号" width="140" />
         <el-table-column prop="receiveTime" label="核收时间" width="160">
@@ -98,6 +101,30 @@
       </div>
     </el-card>
 
+    <el-card v-if="selectedSample" class="result-detail-card" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span>检验结果详情 - {{ selectedSample.patientName }} ({{ selectedSample.barcode }})</span>
+          <el-button size="small" @click="selectedSample = null">关闭</el-button>
+        </div>
+      </template>
+      <el-table :data="sampleResults" border stripe v-loading="resultsLoading" max-height="300">
+        <el-table-column prop="xmzwmc" label="项目名称" width="200" />
+        <el-table-column prop="jyjg" label="检验结果" width="150" />
+        <el-table-column prop="ckz" label="参考值" width="150" />
+        <el-table-column prop="gdbj" label="高低标志" width="100">
+          <template #default="{ row }">
+            <span v-if="row.gdbj === '↑' || row.gdbj === '↑↑'" style="color: red; font-weight: bold">{{ row.gdbj }}</span>
+            <span v-else-if="row.gdbj === '↓' || row.gdbj === '↓↓'" style="color: blue; font-weight: bold">{{ row.gdbj }}</span>
+            <span v-else>{{ row.gdbj }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-if="!resultsLoading && sampleResults.length === 0" style="text-align: center; padding: 20px; color: #909399;">
+        暂无检验结果数据
+      </div>
+    </el-card>
+
     <!-- 统计图表区 -->
     <el-card class="statistics-chart-card" shadow="hover">
       <template #header>
@@ -127,6 +154,7 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import { saveAs } from 'file-saver'
 
 // 动态选项数据
 const patientTypeOptions = ref([])
@@ -152,6 +180,25 @@ const detailLoading = ref(false)
 const detailTotal = ref(0)
 const detailPage = ref(1)
 const detailPageSize = ref(20)
+
+const selectedSample = ref(null)
+const sampleResults = ref([])
+const resultsLoading = ref(false)
+
+const handleRowClick = async (row) => {
+  selectedSample.value = row
+  resultsLoading.value = true
+  sampleResults.value = []
+  try {
+    const res = await axios.get(`/api/query/sample/results/${row.brxxId || row.id}`)
+    sampleResults.value = res.data || []
+  } catch (e) {
+    console.error('加载检验结果失败:', e)
+    sampleResults.value = []
+  } finally {
+    resultsLoading.value = false
+  }
+}
 
 // 图表引用
 const patientTypeChartRef = ref(null)
@@ -240,6 +287,58 @@ const handleClearFilters = () => {
 // 打印
 const handlePrint = () => {
   window.print()
+}
+
+const exportToExcel = async () => {
+  if (detailList.value.length === 0) {
+    ElMessage.warning('暂无数据可导出')
+    return
+  }
+  try {
+    const XLSX = await import('xlsx')
+    const columns = [
+      { header: '条码号', key: 'barcode' },
+      { header: '核收时间', key: 'receiveTime' },
+      { header: '设备', key: 'instrument' },
+      { header: '组合名称', key: 'comboName' },
+      { header: '标本种类', key: 'sampleTypeName' },
+      { header: '病人姓名', key: 'patientName' },
+      { header: '性别', key: 'sex' },
+      { header: '年龄', key: 'age' },
+      { header: '科室', key: 'department' },
+      { header: '床号', key: 'bedNo' },
+      { header: '病人类别', key: 'patientCategory' },
+      { header: '工作组', key: 'workGroup' },
+      { header: '核收人', key: 'receiver' }
+    ]
+    const headerRow = columns.map(c => c.header)
+    const dataRows = detailList.value.map(row =>
+      columns.map(c => {
+        const val = row[c.key]
+        if (c.key === 'receiveTime' && val) {
+          return new Date(val).toLocaleString('zh-CN')
+        }
+        return val ?? ''
+      })
+    )
+    const wsData = [headerRow, ...dataRows]
+    const ws = XLSX.utils.aoa_to_sheet(wsData)
+    ws['!cols'] = columns.map(() => ({ wch: 15 }))
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '查询结果')
+    const dateStr = new Date().toISOString().split('T')[0]
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' })
+    const a = document.createElement('a')
+    a.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + wbout
+    a.download = `查询统计_${dateStr}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    console.error('导出Excel失败:', e)
+    ElMessage.error('导出失败：' + (e.message || '未知错误'))
+  }
 }
 
 // 加载统计数据
@@ -406,6 +505,15 @@ onMounted(async () => {
 .detail-list-card {
   margin-bottom: 20px;
   flex-shrink: 0;
+}
+
+.result-detail-card {
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.detail-list-card :deep(.el-table__row) {
+  cursor: pointer;
 }
 
 .statistics-chart-card {

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysGdzMapper">
+
+    <select id="listAll" resultType="map">
+        SELECT bhid, bh, bs, sybz FROM sys_gdz ORDER BY bhid
+    </select>
+
+    <select id="listActive" resultType="map">
+        SELECT bhid, bh, bs, sybz FROM sys_gdz WHERE sybz = 1 ORDER BY bs
+    </select>
+
+    <update id="deactivateAll">
+        UPDATE sys_gdz SET sybz = 0 WHERE sybz = 1
+    </update>
+
+    <select id="getMaxBhid" resultType="int">
+        SELECT IFNULL(MAX(bhid), 0) FROM sys_gdz
+    </select>
+
+    <insert id="insertFlag">
+        INSERT INTO sys_gdz (bhid, bh, bs, sybz) VALUES (#{bhid}, #{bh}, #{bs}, #{sybz})
+    </insert>
+
+    <update id="updateFlag">
+        UPDATE sys_gdz SET bh = #{bh}, sybz = #{sybz} WHERE bhid = #{bhid} AND bs = #{bs}
+    </update>
+
+    <delete id="deleteByBhidRange">
+        DELETE FROM sys_gdz WHERE bhid BETWEEN #{from} AND #{to}
+    </delete>
+
+    <select id="countActiveByBhid" resultType="int">
+        SELECT COUNT(*) FROM sys_gdz WHERE bhid BETWEEN #{baseId} AND #{baseId} + 3 AND sybz = 1
+    </select>
+
+</mapper>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.GzszZhxmMapper">
+
+    <select id="listByXlbh" resultType="map">
+        SELECT g.id, g.xlbh, g.zhid, g.zhxmmc, g.yxxh,
+               z.his_xmdm, z.his_zhmc,
+               z.bbzl AS bbzlCode,
+               IFNULL(bb.bmsm, '') AS bbzlName
+        FROM gzsz_zhxm g
+        LEFT JOIN bgxt_xmzh_zb z ON g.zhid = z.zhid
+        LEFT JOIN sys_bbzl_dict bb ON z.bbzl = bb.bm
+        WHERE g.xlbh = #{xlbh} ORDER BY g.yxxh, g.id
+    </select>
+
+    <insert id="insertMapping">
+        INSERT INTO gzsz_zhxm (xlbh, zhid, zhxmmc, yxxh) VALUES (#{xlbh}, #{zhid}, #{zhxmmc}, #{yxxh})
+    </insert>
+
+    <delete id="deleteByXlbhAndCode">
+        DELETE FROM gzsz_zhxm WHERE xlbh = #{xlbh} AND zhid = #{zhid}
+    </delete>
+
+    <select id="listAvailableItems" resultType="map">
+        SELECT zhid, zhmc as zhxmmc, pym FROM bgxt_xmzh_zb
+        WHERE zhid NOT IN (SELECT zhid FROM gzsz_zhxm WHERE xlbh = #{xlbh})
+        ORDER BY zhid
+    </select>
+
+    <select id="listCombosByInstrument" resultType="map">
+        SELECT z.zhid, z.zhmc, z.pym FROM bgxt_yqxmzh yq
+        JOIN bgxt_xmzh_zb z ON yq.zhid = z.zhid
+        WHERE yq.sb_djid = #{sbDjid}
+        ORDER BY yq.zhsx
+    </select>
+
+</mapper>

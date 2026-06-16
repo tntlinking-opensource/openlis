@@ -1,11 +1,15 @@
 package com.lis.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.lis.dto.LoginRequest;
 import com.lis.entity.SysCzydm;
 import com.lis.mapper.SysCzydmMapper;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import com.lis.annotation.OperationLog;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -13,7 +17,8 @@ import org.springframework.web.bind.annotation.*;
  * 基于旧系统 sys_czydm 表实现
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping({"/auth", "/api/auth"})
+@Slf4j
 public class AuthController {
     
     @Autowired
@@ -23,24 +28,21 @@ public class AuthController {
      * 登录接口
      * 对应旧系统登录逻辑
      */
+    @OperationLog(value = "用户登录", module = "系统登录")
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         try {
-            System.out.println("=== 登录请求 ===");
-            System.out.println("用户名: " + request.getUsername());
-            System.out.println("密码: " + request.getPassword());
-            
-            // 使用 QueryWrapper 查询用户（因为主键是字符串类型）
+            log.info("=== 登录请求 ===");
+            String loginCode = request.getUsername();
+            log.info("用户名: " + loginCode);
             QueryWrapper<SysCzydm> wrapper = new QueryWrapper<>();
-            wrapper.eq("czydm", request.getUsername());
-            System.out.println("执行查询: czydm = " + request.getUsername());
+            wrapper.eq("czydm", loginCode);
+            log.info("执行查询: czydm = " + request.getUsername());
             
             SysCzydm user = sysCzydmMapper.selectOne(wrapper);
             
-            System.out.println("查询结果: " + (user == null ? "null" : "找到用户"));
-            if (user != null) {
-                System.out.println("用户信息: czydm=" + user.getCzydm() + ", czyxm=" + user.getCzyxm() + ", czymm=" + user.getCzymm() + ", kl=" + user.getKl());
-            }
+            log.info("查询结果: " + (user == null ? "null" : "找到用户"));
+            if (user != null) {            }
             
             if (user == null) {
                 return ResponseEntity.ok(LoginResponse.fail("用户不存在"));
@@ -51,14 +53,15 @@ public class AuthController {
             // 但当前表结构可能使用 sybz，先检查 sybz
             
             // 验证密码（使用 czymm 字段，与参考项目一致）
-            String dbPassword = user.getCzymm();
-            System.out.println("数据库密码(czymm): " + dbPassword);
-            System.out.println("输入密码: " + request.getPassword());
-            if (dbPassword == null || !dbPassword.equals(request.getPassword())) {
+            String dbPassword = user.getCzymm();            if (dbPassword == null || !dbPassword.equals(request.getPassword())) {
                 return ResponseEntity.ok(LoginResponse.fail("密码错误"));
             }
             
-            // 登录成功
+            // 登录成功 - 清除敏感字段后再返回前端
+            user.setCzymm(null);
+            user.setKl(null);
+            user.setDzqm(null);
+            
             LoginResponse response = new LoginResponse();
             response.setSuccess(true);
             response.setMessage("登录成功");
@@ -66,21 +69,16 @@ public class AuthController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             // 捕获异常并返回错误信息
-            e.printStackTrace(); // 打印完整堆栈到控制台
-            System.err.println("登录异常: " + e.getClass().getName() + ": " + e.getMessage());
+            log.error("操作失败", e); // 打印完整堆栈到控制台
+            log.error("登录异常: " + e.getClass().getName() + ": " + e.getMessage());
             Throwable cause = e.getCause();
             if (cause != null) {
-                System.err.println("原因: " + cause.getClass().getName() + ": " + cause.getMessage());
+                log.error("原因: " + cause.getClass().getName() + ": " + cause.getMessage());
             }
             return ResponseEntity.ok(LoginResponse.fail("登录失败: " + e.getMessage()));
         }
     }
     
-    @Data
-    public static class LoginRequest {
-        private String username; // czydm
-        private String password; // kl
-    }
     
     @Data
     public static class LoginResponse {

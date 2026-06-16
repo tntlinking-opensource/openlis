@@ -5,60 +5,77 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-/**
- * 7.6 仪器设备设置 - 仪器实体
- * 对应旧系统设备登记表 sys_sbdjb
- */
+import java.math.BigDecimal;
+
 @Data
 @TableName("sys_sbdjb")
 public class Instrument {
 
-    /**
-     * 设备登记ID（主键）
-     */
     @TableId(type = IdType.AUTO)
     private Integer sbDjid;
 
-    /**
-     * 设备代码（sbdm）
-     */
     private String sbdm;
-
-    /**
-     * 设备名称（sbmc）
-     */
     private String sbmc;
-
-    /**
-     * 设备别名 / 仪器编码（sbbm）
-     */
     private String sbbm;
-
-    /**
-     * 科室代码（ksdm）
-     */
     private String ksdm;
-
-    /**
-     * 工作组代码（gzzdm）
-     */
     private String gzzdm;
-
-    /**
-     * 拼音码（pym）
-     */
     private String pym;
-
-    /**
-     * 执行标志（zxbz）
-     * 1-执行/启用，0-不执行/停用
-     */
     private Boolean zxbz;
-
-    /**
-     * 停用标志（tybz）
-     */
     private Boolean tybz;
+
+    private String comsm;
+    private Integer btl;
+    private String jyw;
+    private Integer sjw;
+    private Integer tzw;
+
+    private String xmxsfs;
+    private String bgbt;
+    private String bgyj;
+    private Integer mrzhid;
+    private String tx;
+    private String dyfs;
+    private String shzfs;
+    private Integer sxpl;
+    private Boolean ycxwc;
+
+    private String xsfs;
+    private String bblb;
+    private String bgbh;
+    private String bgmc;
+    private String xslb;
+    private String zklb;
+    private String yqzd;
+    private Integer zjjgts;
+    private String zkjh;
+    private String jzjh;
+    private String cjcx;
+    private String szdm;
+
+    private Boolean kztsbz;
+    private Boolean jkxmxz;
+    private Boolean fsztsbz;
+    private Boolean zerotsbz;
+
+    private String ip;
+    private String dk;
+    private String sjklj;
+    private String wjdz;
+    private String bfdz;
+    private String wjyhm;
+    private String wjmm;
+
+    private String yszcz;
+    private String yspgz;
+    private String yspdz;
+    private String ysbjgz;
+    private String ysbjdz;
+    private String yswsh;
+    private String ysysh;
+    private String ysycy;
+    private String ysydy;
+    private String ysyjy;
+    private String ysycz;
+    private String yswjz;
+    private String ysjgwc;
 }
-
-

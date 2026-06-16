@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtBgmbMapper">
+
+  <select id="selectAll" resultType="java.util.Map">
+    SELECT id, bgmbmc, bgjglx, sb_djid, zhid, ksdm, sfbz, bz, bgmbnr, srrq FROM bgxt_bgmb ORDER BY id
+  </select>
+
+  <select id="selectById" resultType="java.util.Map">
+    SELECT id, bgmbmc, bgjglx, sb_djid, zhid, ksdm, sfbz, bz, bgmbnr, srrq FROM bgxt_bgmb WHERE id = #{id}
+  </select>
+
+  <select id="selectByInstrumentAndCombo" resultType="java.util.Map">
+    SELECT id, bgmbmc, bgjglx, sb_djid, zhid, ksdm, sfbz, bz, bgmbnr, srrq FROM bgxt_bgmb
+    WHERE sb_djid = #{sbDjid} AND zhid = #{zhid}
+    ORDER BY id LIMIT 1
+  </select>
+
+  <select id="selectByInstrument" resultType="java.util.Map">
+    SELECT id, bgmbmc, bgjglx, sb_djid, zhid, ksdm, sfbz, bz, bgmbnr, srrq FROM bgxt_bgmb
+    WHERE sb_djid = #{sbDjid} AND zhid IS NULL AND ksdm IS NULL
+    ORDER BY id LIMIT 1
+  </select>
+
+  <select id="selectByDepartment" resultType="java.util.Map">
+    SELECT id, bgmbmc, bgjglx, sb_djid, zhid, ksdm, sfbz, bz, bgmbnr, srrq FROM bgxt_bgmb
+    WHERE ksdm = #{ksdm} AND sb_djid IS NULL AND zhid IS NULL
+    ORDER BY id LIMIT 1
+  </select>
+
+  <select id="selectDefault" resultType="java.util.Map">
+    SELECT id, bgmbmc, bgjglx, sb_djid, zhid, ksdm, sfbz, bz, bgmbnr, srrq FROM bgxt_bgmb
+    WHERE sb_djid IS NULL AND zhid IS NULL AND ksdm IS NULL
+    ORDER BY id LIMIT 1
+  </select>
+
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+    INSERT INTO bgxt_bgmb (bgmbmc, bgjglx, sb_djid, zhid, ksdm, bz, bgmbnr, srrq)
+    VALUES (#{bgmbmc}, #{bgjglx}, #{sbDjid}, #{zhid}, #{ksdm}, #{bz}, #{bgmbnr}, NOW())
+  </insert>
+
+  <update id="updateById">
+    UPDATE bgxt_bgmb SET bgmbmc=#{bgmbmc}, bgjglx=#{bgjglx}, sb_djid=#{sbDjid}, zhid=#{zhid},
+    ksdm=#{ksdm}, bz=#{bz}, bgmbnr=#{bgmbnr} WHERE id=#{id}
+  </update>
+
+  <delete id="deleteById">
+    DELETE FROM bgxt_bgmb WHERE id = #{id}
+  </delete>
+
+</mapper>

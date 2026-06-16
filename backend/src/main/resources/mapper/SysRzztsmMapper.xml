@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysRzztsmMapper">
+
+    <select id="listBySystemId" resultType="map">
+        SELECT ztid, ztsm FROM sys_rzztsm WHERE zxtid = #{zxtid} ORDER BY ztid
+    </select>
+
+    <select id="listAll" resultType="map">
+        SELECT ztid, ztsm, zxtid FROM sys_rzztsm ORDER BY zxtid, ztid
+    </select>
+
+</mapper>

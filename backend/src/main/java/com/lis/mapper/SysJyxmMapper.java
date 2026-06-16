@@ -4,10 +4,10 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lis.entity.SysJyxm;
 import org.apache.ibatis.annotations.Mapper;
 
-/**
- * 检验项目表 Mapper
- */
+import java.util.List;
+import java.util.Map;
+
 @Mapper
 public interface SysJyxmMapper extends BaseMapper<SysJyxm> {
+    List<Map<String, Object>> selectActiveItems();
 }
-

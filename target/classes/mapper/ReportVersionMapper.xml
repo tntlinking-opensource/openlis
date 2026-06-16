@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.ReportVersionMapper">
+
+    <select id="listAll" resultType="map">
+        SELECT bb_id, sycx, bbsm, czydm, czyxm,
+               DATE_FORMAT(gxrq, '%Y-%m-%d %H:%i:%s') as gxrq,
+               CASE WHEN mr = 1 THEN '是' ELSE '否' END as mrmc,
+               mr
+        FROM sys_bbsz
+        ORDER BY bb_id
+    </select>
+
+    <select id="search" resultType="map">
+        SELECT bb_id, sycx, bbsm, czydm, czyxm,
+               DATE_FORMAT(gxrq, '%Y-%m-%d %H:%i:%s') as gxrq,
+               CASE WHEN mr = 1 THEN '是' ELSE '否' END as mrmc,
+               mr
+        FROM sys_bbsz
+        WHERE bbsm LIKE CONCAT('%', #{keyword}, '%')
+           OR czydm LIKE CONCAT('%', #{keyword}, '%')
+           OR czyxm LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY bb_id
+    </select>
+
+    <select id="getById" resultType="map">
+        SELECT bb_id, sycx, bbsm, czydm, czyxm,
+               DATE_FORMAT(gxrq, '%Y-%m-%d %H:%i:%s') as gxrq,
+               mr,
+               LENGTH(bb) as bb_size,
+               mrt
+        FROM sys_bbsz
+        WHERE bb_id = #{bbId}
+    </select>
+
+    <select id="getMrtById" resultType="string">
+        SELECT mrt FROM sys_bbsz WHERE bb_id = #{bbId}
+    </select>
+
+    <select id="countByBbId" resultType="int">
+        SELECT COUNT(*) FROM sys_bbsz WHERE bb_id = #{bbId}
+    </select>
+
+    <select id="countByMr" resultType="int">
+        SELECT COUNT(*) FROM sys_bbsz WHERE mr = #{mr} AND bb_id != #{bbId}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO sys_bbsz (sycx, bbsm, czydm, czyxm, gxrq, bb, mr)
+        VALUES (#{sycx}, #{bbsm}, #{czydm}, #{czyxm}, NOW(), #{bb}, #{mr})
+    </insert>
+
+    <update id="update">
+        UPDATE sys_bbsz
+        SET bbsm = #{bbsm}, gxrq = NOW(), mr = #{mr}
+        WHERE bb_id = #{bbId}
+    </update>
+
+    <update id="updateMrt">
+        UPDATE sys_bbsz SET mrt = #{mrt}, gxrq = NOW() WHERE bb_id = #{bbId}
+    </update>
+
+    <insert id="insertWithMrt">
+        INSERT INTO sys_bbsz (sycx, bbsm, czydm, czyxm, gxrq, bb, mr, mrt)
+        VALUES (#{sycx}, #{bbsm}, #{czydm}, #{czyxm}, NOW(), #{bb}, #{mr}, #{mrt})
+    </insert>
+
+    <update id="updateMr">
+        UPDATE sys_bbsz SET mr = #{mr} WHERE bb_id = #{bbId}
+    </update>
+
+    <update id="clearOtherMr">
+        UPDATE sys_bbsz SET mr = NULL WHERE bb_id != #{bbId} AND mr = 1
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM sys_bbsz WHERE bb_id = #{bbId}
+    </delete>
+
+</mapper>

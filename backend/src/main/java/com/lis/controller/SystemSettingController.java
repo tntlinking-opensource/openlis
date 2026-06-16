@@ -1,13 +1,17 @@
 package com.lis.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.lis.annotation.OperationLog;
 import com.lis.entity.BgxtXtsz;
 import com.lis.entity.SysXtsz;
 import com.lis.mapper.BgxtXtszMapper;
 import com.lis.mapper.SysXtszMapper;
+import com.lis.service.SystemService;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -20,13 +24,17 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/system/setting")
+@Slf4j
 public class SystemSettingController {
-    
+
     @Autowired
     private BgxtXtszMapper bgxtXtszMapper;
-    
+
     @Autowired
     private SysXtszMapper sysXtszMapper;
+
+    @Autowired
+    private SystemService systemService;
     
     /**
      * 获取所有系统设置项
@@ -59,6 +67,7 @@ public class SystemSettingController {
      * 保存系统设置项
      */
     @PostMapping("/save")
+    @OperationLog(value = "保存系统设置", module = "系统设置")
     public ResponseEntity<ApiResponse> saveSetting(@RequestBody SaveSettingRequest request) {
         try {
             // 保存 bgxt_xtsz 设置项列表
@@ -96,20 +105,30 @@ public class SystemSettingController {
     public static class ApiResponse {
         private Boolean success;
         private String message;
-        
+
         public static ApiResponse success(String message) {
             ApiResponse response = new ApiResponse();
             response.setSuccess(true);
             response.setMessage(message);
             return response;
         }
-        
+
         public static ApiResponse fail(String message) {
             ApiResponse response = new ApiResponse();
             response.setSuccess(false);
             response.setMessage(message);
             return response;
         }
+    }
+
+    @GetMapping("/auxSettings")
+    public ResponseEntity<Map<String, Object>> getAuxSettings() {
+        return ResponseEntity.ok(systemService.getAuxSettings());
+    }
+
+    @PutMapping("/auxSettings")
+    public ResponseEntity<Map<String, Object>> saveAuxSettings(@RequestBody Map<String, Boolean> settings) {
+        return ResponseEntity.ok(systemService.saveAuxSettings(settings));
     }
 }
 

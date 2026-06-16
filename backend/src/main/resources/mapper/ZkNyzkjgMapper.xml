@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.ZkNyzkjgMapper">
+
+    <select id="findDailyResults" resultType="map">
+        SELECT j.id, j.zkxmid, j.yssj, j.yhsj, j.jssj, j.sybz, j.skbz, j.jssj as syrq,
+               x.zkpid, x.xmid as xmdm, z.zkpmc
+        FROM zk_nyzkjg j
+        LEFT JOIN zk_nyzkxm x ON j.zkxmid = x.zkxmid
+        LEFT JOIN sys_zkpd z ON x.zkpid = z.zkpid
+        WHERE 1=1
+        <choose>
+            <when test="days != null and days > 0">
+                AND j.jssj >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+                <if test="zkpid != null">AND x.zkpid = #{zkpid}</if>
+            </when>
+            <otherwise>
+                AND DATE(j.jssj) = DATE(#{date})
+                <if test="zkpid != null">AND x.zkpid = #{zkpid}</if>
+            </otherwise>
+        </choose>
+        ORDER BY j.jssj DESC, j.id DESC
+    </select>
+
+    <insert id="insertResultWithDate">
+        INSERT INTO zk_nyzkjg (zkxmid, yssj, yhsj, jssj, sybz, skbz)
+        VALUES (#{zkxmid}, #{yssj}, #{yhsj}, #{resultDate}, #{sybz}, #{skbz})
+    </insert>
+
+    <insert id="insertResultWithCurdate">
+        INSERT INTO zk_nyzkjg (zkxmid, yssj, yhsj, jssj, sybz, skbz)
+        VALUES (#{zkxmid}, #{yssj}, #{yhsj}, CURDATE(), #{sybz}, #{skbz})
+    </insert>
+
+    <delete id="deleteResult">
+        DELETE FROM zk_nyzkjg WHERE id = #{id}
+    </delete>
+
+    <select id="findAnalysisData" resultType="map">
+        SELECT jg.id, jg.zkxmid, jg.yssj, jg.yhsj, jg.jssj, jg.sybz, jg.skbz, jg.jssj as syrq,
+               x.zkpid, z.zkpmc,
+               x.bz as target_bz, x.bzc as target_bzc, x.zkdz, x.zkgz, x.dx_lx, x.fhbz
+        FROM zk_nyzkjg jg
+        LEFT JOIN zk_nyzkxm x ON jg.zkxmid = x.zkxmid
+        LEFT JOIN sys_zkpd z ON x.zkpid = z.zkpid
+        WHERE 1=1
+        <if test="begDate != null and begDate != ''">
+            AND DATEDIFF(jg.jssj, #{begDate}) &gt;= 0
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATEDIFF(jg.jssj, #{endDate}) &lt;= 0
+        </if>
+        <if test="(begDate == null or begDate == '') and (endDate == null or endDate == '')">
+            AND jg.jssj &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        </if>
+        <if test="zkpid != null">AND x.zkpid = #{zkpid}</if>
+        <if test="zkxmid != null">AND jg.zkxmid = #{zkxmid}</if>
+        ORDER BY jg.jssj DESC
+    </select>
+
+    <select id="findQcData" resultType="map">
+        SELECT j.id, j.zkxmid, j.yssj, j.yhsj, j.jssj, j.sybz, j.skbz,
+               x.xmid as xmdm
+        FROM zk_nyzkjg j
+        LEFT JOIN zk_nyzkxm x ON j.zkxmid = x.zkxmid
+        WHERE 1=1
+        <if test="zkxmid != null">AND j.zkxmid = #{zkxmid}</if>
+        <if test="begDate != null and begDate != ''">
+            AND DATEDIFF(j.jssj, #{begDate}) &gt;= 0
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATEDIFF(j.jssj, #{endDate}) &lt;= 0
+        </if>
+        AND j.sybz = 1
+        ORDER BY j.jssj DESC
+    </select>
+
+    <select id="findRecentResults" resultType="map">
+        SELECT j.id, j.zkxmid, j.yssj, j.yhsj, j.jssj, j.sybz, j.skbz,
+               x.bz as target_bz, x.bzc as target_bzc, x.zkdz, x.zkgz, x.dx_lx
+        FROM zk_nyzkjg j
+        LEFT JOIN zk_nyzkxm x ON j.zkxmid = x.zkxmid
+        WHERE j.zkxmid = #{zkxmid}
+          AND j.sybz = 1
+        ORDER BY j.jssj DESC, j.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectCvTrend" resultType="map">
+        SELECT DATE_FORMAT(j.jssj, '%Y-%m') as month,
+               COUNT(*) as cnt,
+               AVG(j.yhsj) as mean,
+               STDDEV(j.yhsj) as sd,
+               CASE WHEN AVG(j.yhsj) > 0 THEN ROUND(STDDEV(j.yhsj) / AVG(j.yhsj) * 100, 2) ELSE 0 END as cv
+        FROM zk_nyzkjg j
+        LEFT JOIN zk_nyzkxm x ON j.zkxmid = x.zkxmid
+        WHERE j.yhsj IS NOT NULL
+          AND j.sybz = 1
+        <if test="zkxmid != null">
+            AND j.zkxmid = #{zkxmid}
+        </if>
+        <if test="zkpid != null">
+            AND x.zkpid = #{zkpid}
+        </if>
+        <if test="begDate != null and begDate != ''">
+            AND j.jssj &gt;= #{begDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND j.jssj &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+        GROUP BY month
+        HAVING COUNT(*) &gt;= 2
+        ORDER BY month
+    </select>
+
+    <select id="selectZScoreData" resultType="map">
+        SELECT j.jssj as syrq, j.yhsj,
+               CASE
+                   WHEN x.bzc IS NOT NULL AND x.bzc != '' AND x.bzc + 0 > 0
+                       THEN ROUND((j.yhsj - x.bz + 0) / (x.bzc + 0), 4)
+                   ELSE ROUND((j.yhsj - sub.avg_val) / NULLIF(sub.sd_val, 0), 4)
+               END as zscore
+        FROM zk_nyzkjg j
+        LEFT JOIN zk_nyzkxm x ON j.zkxmid = x.zkxmid
+        LEFT JOIN (
+            SELECT zkxmid, AVG(yhsj) as avg_val, STDDEV(yhsj) as sd_val
+            FROM zk_nyzkjg
+            WHERE yhsj IS NOT NULL AND sybz = 1
+            GROUP BY zkxmid
+            HAVING COUNT(*) >= 2
+        ) sub ON j.zkxmid = sub.zkxmid
+        WHERE j.yhsj IS NOT NULL
+          AND j.sybz = 1
+        <if test="zkxmid != null">
+            AND j.zkxmid = #{zkxmid}
+        </if>
+        <if test="zkpid != null">
+            AND x.zkpid = #{zkpid}
+        </if>
+        <if test="begDate != null and begDate != ''">
+            AND j.jssj &gt;= #{begDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND j.jssj &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+        ORDER BY j.jssj
+    </select>
+
+    <select id="selectQcStats" resultType="map">
+        SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN j.sybz = 1 THEN 1 ELSE 0 END) as valid,
+            SUM(CASE WHEN j.sybz = 0 THEN 1 ELSE 0 END) as invalid,
+            ROUND(AVG(j.yhsj), 4) as mean_val,
+            ROUND(STDDEV(j.yhsj), 4) as sd_val,
+            CASE WHEN AVG(j.yhsj) > 0 THEN ROUND(STDDEV(j.yhsj) / AVG(j.yhsj) * 100, 2) ELSE 0 END as cv_val,
+            MIN(j.yhsj) as min_val,
+            MAX(j.yhsj) as max_val
+        FROM zk_nyzkjg j
+        LEFT JOIN zk_nyzkxm x ON j.zkxmid = x.zkxmid
+        WHERE j.yhsj IS NOT NULL
+        <if test="zkxmid != null">
+            AND j.zkxmid = #{zkxmid}
+        </if>
+        <if test="zkpid != null">
+            AND x.zkpid = #{zkpid}
+        </if>
+        <if test="begDate != null and begDate != ''">
+            AND j.jssj &gt;= #{begDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND j.jssj &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+    </select>
+
+    <select id="selectProductsWithData" resultType="map">
+        SELECT DISTINCT x.zkpid,
+               COALESCE(z.zwmc, z.zkpmc, CONCAT(COALESCE(z.sccj, ''), '质控品', x.zkpid)) as label,
+               z.ph
+        FROM zk_nyzkjg j
+        LEFT JOIN zk_nyzkxm x ON j.zkxmid = x.zkxmid
+        LEFT JOIN sys_zkpd z ON x.zkpid = z.zkpid
+        WHERE j.yhsj IS NOT NULL
+        ORDER BY x.zkpid
+    </select>
+
+</mapper>

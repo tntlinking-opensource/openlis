@@ -27,10 +27,9 @@
         质控分析
       </button>
       <button 
-        class="qc-tab disabled" 
+        class="qc-tab"
         :class="{ active: activeTab === 'evaluation' }" 
         @click="switchTab('evaluation')"
-        disabled
       >
         质控评价
       </button>
@@ -241,7 +240,7 @@
             <select v-model="entryProductFilter" @change="onEntryProductChange">
               <option :value="null">全部</option>
               <option v-for="p in productList" :key="p.zkpid" :value="p.zkpid">
-                {{ p.zwmc }} ({{ p.ph }})
+                {{ p.zwmc || p.zkpmc || `${p.sccj || ''}质控品${p.zkpid}` }} ({{ p.ph || '' }})
               </option>
             </select>
           </div>
@@ -318,21 +317,15 @@
         <div class="filter-bar">
           <div class="filter-group">
             <label>质控品:</label>
-            <select v-model="analysisProductFilter" @change="onAnalysisProductChange">
-              <option :value="null">全部</option>
-              <option v-for="p in productList" :key="p.zkpid" :value="p.zkpid">
-                {{ p.zwmc }} ({{ p.ph }})
-              </option>
-            </select>
+            <el-select v-model="analysisProductFilter" placeholder="全部" clearable filterable size="small" style="width:200px;" @change="onAnalysisProductChange" :teleported="false">
+              <el-option v-for="p in analysisProductList" :key="p.zkpid" :label="p.label" :value="p.zkpid" />
+            </el-select>
           </div>
           <div class="filter-group">
             <label>项目:</label>
-            <select v-model="analysisProjectFilter" @change="loadAnalysisData">
-              <option :value="null">全部</option>
-              <option v-for="p in analysisProjectOptions" :key="p.zkxmid" :value="p.zkxmid">
-                {{ p.xmmc }}
-              </option>
-            </select>
+            <el-select v-model="analysisProjectFilter" placeholder="全部" clearable filterable size="small" style="width:200px;" @change="loadAnalysisData" :teleported="false">
+              <el-option v-for="p in analysisProjectOptions" :key="p.zkxmid" :label="p.xmmc || `项目${p.zkxmid}`" :value="p.zkxmid" />
+            </el-select>
           </div>
           <div class="filter-group">
             <label>日期:</label>
@@ -366,8 +359,8 @@
           </div>
         </div>
 
-        <!-- 分析内容 -->
-        <div class="analysis-content">
+          <!-- 分析内容 -->
+          <div class="analysis-content">
           <div class="analysis-tabs">
             <button 
               :class="{ active: analysisSubTab === 'data' }"
@@ -379,7 +372,19 @@
               :class="{ active: analysisSubTab === 'chart' }"
               @click="analysisSubTab = 'chart'"
             >
-              趋势图
+              L-J质控图
+            </button>
+            <button 
+              :class="{ active: analysisSubTab === 'zscore' }"
+              @click="analysisSubTab = 'zscore'; renderZScoreChart()"
+            >
+              Z分数图
+            </button>
+            <button 
+              :class="{ active: analysisSubTab === 'summary' }"
+              @click="analysisSubTab = 'summary'; loadSummaryData()"
+            >
+              汇总统计
             </button>
           </div>
 
@@ -394,6 +399,7 @@
                   <th>检测结果</th>
                   <th>偏倚</th>
                   <th>偏倚%</th>
+                  <th>Westgard规则</th>
                   <th>状态</th>
                 </tr>
               </thead>
@@ -407,41 +413,190 @@
                   <td>{{ calcBias(item) }}</td>
                   <td>{{ calcBiasPercent(item) }}%</td>
                   <td>
+                    <span v-if="item.westgardRules" class="text-danger bold" style="font-size:11px;">
+                      {{ item.westgardRules }}
+                    </span>
+                    <span v-else>-</span>
+                  </td>
+                  <td>
                     <span :class="item.skbz ? 'text-danger bold' : 'text-success'">
                       {{ item.skbz ? '失控' : '在控' }}
                     </span>
                   </td>
                 </tr>
                 <tr v-if="analysisData.length === 0">
-                  <td colspan="7" class="empty-cell">暂无数据</td>
+                  <td colspan="8" class="empty-cell">暂无数据</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <!-- 趋势图 (ECharts) -->
-          <div v-show="analysisSubTab === 'chart'" class="analysis-chart">
-            <div v-if="chartData.length === 0" class="empty-tip">
-              暂无数据可显示趋势图
-            </div>
-            <div v-else class="chart-container">
-              <div class="chart-header">
-                <span>{{ currentAnalysisProject?.xmmc }} - Levey-Jennings质控图</span>
+          <!-- L-J质控图 + 失控记录 -->
+          <div v-show="analysisSubTab === 'chart'" class="analysis-chart-wrapper">
+            <div class="chart-area">
+              <div v-if="chartData.length === 0" class="empty-tip">暂无数据</div>
+              <div v-else>
+                <div class="chart-header">
+                  <span>{{ currentAnalysisProject?.xmmc || '' }} - Levey-Jennings质控图</span>
+                </div>
+                <div id="qcChart" style="width: 100%; height: 350px;"></div>
               </div>
-              <div id="qcChart" style="width: 100%; height: 400px;"></div>
             </div>
+            <div class="ooc-area">
+              <div class="ooc-section">
+                <strong>失控记录</strong>
+                <table class="data-table" style="font-size:12px;">
+                  <thead>
+                    <tr><th>日期</th><th>结果</th><th>偏倚SD</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="r in outOfControlRecords" :key="r.id" class="row-danger">
+                      <td>{{ formatDate(r.syrq) }}</td>
+                      <td>{{ r.yhsj }}</td>
+                      <td>{{ calcSdOffset(r) }}</td>
+                    </tr>
+                    <tr v-if="outOfControlRecords.length === 0"><td colspan="3" class="empty-cell">无失控记录</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="ooc-section">
+                <div style="margin-bottom:6px;"><strong>失控处理:</strong></div>
+                <el-input v-model="oocHandling" type="textarea" :rows="3" placeholder="输入失控处理措施..." />
+                <el-button type="primary" size="small" style="margin-top:6px;" @click="saveOocHandling">保存处理措施</el-button>
+              </div>
+              <div class="ooc-section">
+                <div style="margin-bottom:6px;"><strong>质控评价:</strong></div>
+                <el-input v-model="qcEvalText" type="textarea" :rows="3" placeholder="输入质控评价..." />
+                <el-button type="primary" size="small" style="margin-top:6px;" @click="saveQcEval">保存评价</el-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Z分数图 -->
+          <div v-show="analysisSubTab === 'zscore'" class="analysis-chart">
+            <div v-if="zScoreData.length === 0" class="empty-tip">请选择质控项目后查看Z分数图</div>
+            <div v-else>
+              <div class="chart-header"><span>Z分数图</span></div>
+              <div id="zScoreFullChart" style="width: 100%; height: 450px;"></div>
+            </div>
+          </div>
+
+          <!-- 汇总统计 -->
+          <div v-show="analysisSubTab === 'summary'" class="analysis-summary">
+            <div class="filter-bar" style="margin-bottom:12px;">
+              <el-button type="success" size="small" @click="doQcExport">导出分析数据</el-button>
+              <el-button type="primary" size="small" @click="loadSummaryData">刷新统计</el-button>
+            </div>
+            <div v-if="summaryStats.total === 0" style="text-align:center;color:#909399;padding:40px;">
+              暂无数据，请选择质控品和项目后查看
+            </div>
+            <template v-else>
+              <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+                <el-card shadow="hover" style="flex:1;min-width:120px;text-align:center;">
+                  <div style="font-size:12px;color:#909399;margin-bottom:4px;">在控率</div>
+                  <div style="font-size:22px;font-weight:bold;" :style="{color: inControlColor}">
+                    {{ inControlRate }}%
+                  </div>
+                  <div style="margin-top:6px;height:6px;background:#ebeef5;border-radius:3px;">
+                    <div :style="{width: inControlRate + '%', height: '100%', borderRadius: '3px', background: inControlColor}"></div>
+                  </div>
+                </el-card>
+                <el-card shadow="hover" style="flex:1;min-width:100px;text-align:center;">
+                  <div style="font-size:12px;color:#909399;margin-bottom:4px;">总次数</div>
+                  <div style="font-size:22px;font-weight:bold;color:#409eff;">{{ summaryStats.total || 0 }}</div>
+                </el-card>
+                <el-card shadow="hover" style="flex:1;min-width:100px;text-align:center;">
+                  <div style="font-size:12px;color:#909399;margin-bottom:4px;">有效/失控</div>
+                  <div style="font-size:22px;font-weight:bold;">
+                    <span style="color:#67c23a;">{{ summaryStats.valid || 0 }}</span>
+                    <span style="color:#dcdfe6;margin:0 4px;">/</span>
+                    <span style="color:#f56c6c;">{{ summaryStats.invalid || 0 }}</span>
+                  </div>
+                </el-card>
+                <el-card shadow="hover" style="flex:1;min-width:100px;text-align:center;">
+                  <div style="font-size:12px;color:#909399;margin-bottom:4px;">均值</div>
+                  <div style="font-size:22px;font-weight:bold;color:#303133;">{{ formatNum(summaryStats.mean_val) }}</div>
+                </el-card>
+                <el-card shadow="hover" style="flex:1;min-width:100px;text-align:center;">
+                  <div style="font-size:12px;color:#909399;margin-bottom:4px;">标准差(SD)</div>
+                  <div style="font-size:22px;font-weight:bold;color:#e6a23c;">{{ formatNum(summaryStats.sd_val) }}</div>
+                </el-card>
+                <el-card shadow="hover" style="flex:1;min-width:100px;text-align:center;">
+                  <div style="font-size:12px;color:#909399;margin-bottom:4px;">变异系数(CV%)</div>
+                  <div style="font-size:22px;font-weight:bold;color:#e6a23c;">{{ formatNum(summaryStats.cv_val) }}%</div>
+                </el-card>
+                <el-card shadow="hover" style="flex:1;min-width:100px;text-align:center;">
+                  <div style="font-size:12px;color:#909399;margin-bottom:4px;">最小值</div>
+                  <div style="font-size:22px;font-weight:bold;color:#303133;">{{ formatNum(summaryStats.min_val) }}</div>
+                </el-card>
+                <el-card shadow="hover" style="flex:1;min-width:100px;text-align:center;">
+                  <div style="font-size:12px;color:#909399;margin-bottom:4px;">最大值</div>
+                  <div style="font-size:22px;font-weight:bold;color:#303133;">{{ formatNum(summaryStats.max_val) }}</div>
+                </el-card>
+              </div>
+              <div style="display:flex;gap:16px;">
+                <el-card shadow="hover" style="flex:1;">
+                  <div style="height:280px;" id="cvTrendChart"></div>
+                </el-card>
+                <el-card shadow="hover" style="flex:1;">
+                  <div style="height:280px;" id="zScoreChart"></div>
+                </el-card>
+              </div>
+            </template>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 质控评价（禁用提示） -->
-    <div v-show="activeTab === 'evaluation'" class="tab-content disabled-content">
-      <div class="disabled-tip">
-        <el-icon class="tip-icon"><warning /></el-icon>
-        <p>质控评价功能暂未开放，敬请期待</p>
+    <!-- 质控评价 -->
+    <div v-show="activeTab === 'evaluation'" class="tab-content">
+      <div class="filter-bar" style="margin-bottom:12px;">
+        <el-select v-model="evalFilter.zkpid" placeholder="选择质控品" clearable size="small" style="width:200px;" @change="loadEvaluations">
+          <el-option v-for="p in productList" :key="p.zkpid" :label="p.zwmc || p.zkpmc || `${p.sccj || ''}质控品${p.zkpid}`" :value="p.zkpid" />
+        </el-select>
+        <el-button type="primary" size="small" @click="showEvalDialog = true" style="margin-left:12px;">新增评价</el-button>
       </div>
+      <el-table :data="evaluations" border size="small" style="width:100%;">
+        <el-table-column prop="zkpmc" label="质控品" width="150" />
+        <el-table-column prop="pjmd" label="评价目的" min-width="150" />
+        <el-table-column prop="pjjg" label="评价结果" min-width="150" />
+        <el-table-column prop="pjjsyj" label="技术依据" min-width="150" />
+        <el-table-column prop="pjczy" label="参与人" width="120" />
+        <el-table-column prop="pjrq" label="评价日期" width="110" />
+        <el-table-column label="操作" width="70" fixed="right">
+          <template #default="{ row }">
+            <el-button type="danger" link size="small" @click="handleDeleteEval(row.id)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
+
+    <!-- 评价对话框 -->
+    <el-dialog v-model="showEvalDialog" title="新增质控评价" width="500px">
+      <el-form :model="evalForm" label-width="90px">
+        <el-form-item label="质控品" required>
+          <el-select v-model="evalForm.zkpid" placeholder="选择质控品" style="width:100%;">
+            <el-option v-for="p in productList" :key="p.zkpid" :label="p.zwmc || p.zkpmc || `${p.sccj || ''}质控品${p.zkpid}`" :value="p.zkpid" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="评价目的">
+          <el-input v-model="evalForm.pjmd" type="textarea" :rows="2" />
+        </el-form-item>
+        <el-form-item label="评价结果">
+          <el-input v-model="evalForm.pjjg" type="textarea" :rows="2" />
+        </el-form-item>
+        <el-form-item label="技术依据">
+          <el-input v-model="evalForm.pjjsyj" />
+        </el-form-item>
+        <el-form-item label="参与人">
+          <el-input v-model="evalForm.pjczy" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showEvalDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleAddEval">确定</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 质控品编辑对话框 -->
     <el-dialog v-model="productDialogVisible" :title="editingProduct ? '编辑质控品' : '新增质控品'" width="500px">
@@ -521,7 +676,7 @@
       <el-form :model="entryForm" label-width="100px">
         <el-form-item label="选择质控品" required>
           <el-select v-model="entryForm.zkpid" placeholder="请选择质控品" style="width: 100%" @change="onEntryFormProductChange">
-            <el-option v-for="p in productList" :key="p.zkpid" :label="p.zwmc + ' (' + p.ph + ')'" :value="p.zkpid" />
+            <el-option v-for="p in productList" :key="p.zkpid" :label="(p.zwmc || p.zkpmc || `${p.sccj || ''}质控品${p.zkpid}`) + (p.ph ? ` (${p.ph})` : '')" :value="p.zkpid" />
           </el-select>
         </el-form-item>
         <el-form-item label="选择项目" required>
@@ -556,7 +711,7 @@
       <el-form :model="analysisEntryForm" label-width="100px">
         <el-form-item label="选择质控品" required>
           <el-select v-model="analysisEntryForm.zkpid" placeholder="请选择质控品" style="width: 100%" @change="onAnalysisEntryProductChange">
-            <el-option v-for="p in productList" :key="p.zkpid" :label="p.zwmc + ' (' + p.ph + ')'" :value="p.zkpid" />
+            <el-option v-for="p in productList" :key="p.zkpid" :label="(p.zwmc || p.zkpmc || `${p.sccj || ''}质控品${p.zkpid}`) + (p.ph ? ` (${p.ph})` : '')" :value="p.zkpid" />
           </el-select>
         </el-form-item>
         <el-form-item label="选择项目" required>
@@ -586,11 +741,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, computed } from 'vue'
+import { ref, reactive, onMounted, watch, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
-import { fetchQcProducts, addQcProduct, updateQcProduct, deleteQcProduct, fetchDailyResults, addDailyResult, deleteDailyResult, fetchQcProjects, addQcProject, deleteQcProject, fetchAllProjects, updateQcProject, fetchAvailableProjects, fetchQcAnalysis } from '@/api/qc'
+import axios from 'axios'
+import { fetchQcProducts, addQcProduct, updateQcProduct, deleteQcProduct, fetchDailyResults, addDailyResult, deleteDailyResult, fetchQcProjects, addQcProject, deleteQcProject, fetchAllProjects, updateQcProject, fetchAvailableProjects, fetchQcAnalysis, fetchEvaluations, addEvaluation, deleteEvaluation, fetchProcessingRecords, saveProcessingRecord, fetchZScoreMulti } from '@/api/qc'
 
 const route = useRoute()
 const router = useRouter()
@@ -599,7 +755,6 @@ const activeTab = ref('setup')
 const setupSubTab = ref('projects')
 
 const switchTab = (tab) => {
-  if (tab === 'evaluation') return // 禁用
   activeTab.value = tab
   router.push('/main/qc?tab=' + tab)
 }
@@ -607,6 +762,9 @@ const switchTab = (tab) => {
 watch(() => route.query.tab, (newTab) => {
   if (newTab && ['setup', 'entry', 'analysis', 'evaluation'].includes(newTab)) {
     activeTab.value = newTab
+    if (newTab === 'analysis') {
+      nextTick(() => loadAnalysisData())
+    }
   }
 }, { immediate: true })
 
@@ -616,6 +774,10 @@ const productKeyword = ref('')
 const productDialogVisible = ref(false)
 const editingProduct = ref(null)
 const selectedProduct = ref(null)
+const evaluations = ref([])
+const showEvalDialog = ref(false)
+const evalFilter = reactive({ zkpid: null })
+const evalForm = reactive({ zkpid: null, pjmd: '', pjjg: '', pjjsyj: '', pjczy: '' })
 const productForm = reactive({
   zwmc: '',
   ywmc: '',
@@ -631,6 +793,49 @@ const loadProducts = async () => {
     productList.value = res.data || []
   } catch (e) {
     ElMessage.error('加载质控品失败')
+  }
+}
+
+const loadEvaluations = async () => {
+  try {
+    const res = await fetchEvaluations({ zkpid: evalFilter.zkpid || undefined })
+    evaluations.value = res.data || []
+  } catch (e) {
+    evaluations.value = []
+  }
+}
+
+const handleAddEval = async () => {
+  if (!evalForm.zkpid) {
+    ElMessage.warning('请选择质控品')
+    return
+  }
+  try {
+    const res = await addEvaluation({ ...evalForm })
+    if (res.data?.success) {
+      ElMessage.success('评价成功')
+      showEvalDialog.value = false
+      Object.assign(evalForm, { zkpid: null, pjmd: '', pjjg: '', pjjsyj: '', pjczy: '' })
+      loadEvaluations()
+    } else {
+      ElMessage.error(res.data?.message || '评价失败')
+    }
+  } catch (e) {
+    ElMessage.error('评价失败')
+  }
+}
+
+const handleDeleteEval = async (id) => {
+  try {
+    const res = await deleteEvaluation(id)
+    if (res.data?.success) {
+      ElMessage.success('删除成功')
+      loadEvaluations()
+    } else {
+      ElMessage.error(res.data?.message || '删除失败')
+    }
+  } catch (e) {
+    ElMessage.error('删除失败')
   }
 }
 
@@ -913,17 +1118,33 @@ const chartData = computed(() => {
   return data.slice(0, 30) // 最多显示30个点
 })
 
+const analysisProductList = ref([])
+
+const loadAnalysisProducts = async () => {
+  try {
+    const res = await axios.get('/api/qc/products-with-data')
+    analysisProductList.value = res.data || []
+  } catch (e) { console.error(e) }
+}
+
 const onAnalysisProductChange = async () => {
   analysisProjectFilter.value = null
-  await loadAnalysisData()
   if (analysisProductFilter.value) {
     try {
       const res = await fetchQcProjects(analysisProductFilter.value)
-      analysisProjectOptions.value = res.data || []
+      const all = res.data || []
+      analysisProjectOptions.value = all.filter(p => p.bz || p.bzc).map(p => {
+        if (!p.xmmc) {
+          const type = p.dx_lx === 1 ? '定性' : '定量'
+          p.xmmc = `${type} 靶值${p.bz || '-'} SD${p.bzc || '-'}`
+        }
+        return p
+      })
     } catch (e) {}
   } else {
     analysisProjectOptions.value = []
   }
+  await loadAnalysisData()
 }
 
 const loadAnalysisData = async () => {
@@ -934,7 +1155,7 @@ const loadAnalysisData = async () => {
     if (analysisBegDate.value) params.begDate = analysisBegDate.value
     if (analysisEndDate.value) params.endDate = analysisEndDate.value
     if (!analysisBegDate.value && !analysisEndDate.value) {
-      params.days = 30
+      params.days = 365
     }
     
     const res = await fetchQcAnalysis(params)
@@ -944,6 +1165,7 @@ const loadAnalysisData = async () => {
     analysisStats.invalid = result.invalid || 0
     analysisStats.invalidRate = result.invalidRate || '0.0'
     analysisData.value = result.data || []
+    if (analysisProjectFilter.value) loadProcessingRecords()
   } catch (e) {
     console.error(e)
   }
@@ -1064,32 +1286,46 @@ const renderQcChart = () => {
   const bz = firstItem.target_bz ? parseFloat(firstItem.target_bz) : null
   const bzc = firstItem.target_bzc ? parseFloat(firstItem.target_bzc) : null
   
-  // X轴日期数据
   const xData = data.map(item => {
     const d = new Date(item.syrq)
     return `${d.getMonth() + 1}/${d.getDate()}`
   })
   
-  // Y轴质控结果数据
   const yData = data.map(item => item.yhsj ? parseFloat(item.yhsj) : null)
-  
-  // 系列数据
+
+  const inControlData = yData.map((v, i) => data[i].skbz ? null : v)
+  const oocData = yData.map((v, i) => data[i].skbz ? v : null)
+  const ruleLabels = data.map(item => item.westgardRules || '')
+
   const series = [
     {
-      name: '质控结果',
+      name: '在控',
       type: 'line',
-      data: yData,
+      data: inControlData,
       symbol: 'circle',
       symbolSize: 8,
-      itemStyle: {
-        color: (params) => {
-          return data[params.dataIndex].skbz ? '#f56c6c' : '#67c23a'
-        }
+      lineStyle: { color: '#409eff' },
+      itemStyle: { color: '#67c23a' },
+      connectNulls: true
+    },
+    {
+      name: '失控',
+      type: 'scatter',
+      data: oocData,
+      symbol: 'triangle',
+      symbolSize: 14,
+      itemStyle: { color: '#f56c6c', borderColor: '#c0392b', borderWidth: 2 },
+      label: {
+        show: true,
+        position: 'top',
+        formatter: (params) => ruleLabels[params.dataIndex] || '',
+        fontSize: 10,
+        color: '#f56c6c',
+        fontWeight: 'bold'
       }
     }
   ]
   
-  // 如果有靶值和标准差，添加控制线
   if (bz != null && bzc != null && !isNaN(bz) && !isNaN(bzc) && bzc > 0) {
     const lines = [
       { name: '靶值', offset: 0, color: '#000000', type: 'solid' },
@@ -1108,13 +1344,12 @@ const renderQcChart = () => {
         type: 'line',
         data: yArr,
         showSymbol: false,
-        lineStyle: { type: l.type, color: l.color },
-        label: { show: true, position: 'end' }
+        lineStyle: { type: l.type, color: l.color, width: 1 },
+        label: { show: true, position: 'end', fontSize: 10, color: l.color }
       })
     })
   }
   
-  // 初始化或更新图表
   const chartDom = document.getElementById('qcChart')
   if (!chartDom) return
   
@@ -1125,29 +1360,34 @@ const renderQcChart = () => {
   qcChartInstance.setOption({
     title: { 
       text: currentAnalysisProject.value?.xmmc ? `${currentAnalysisProject.value.xmmc} - Levey-Jennings质控图` : '质控趋势图',
-      left: 'center'
+      left: 'center', textStyle: { fontSize: 14 }
     },
     tooltip: { 
       trigger: 'axis',
       formatter: (params) => {
-        const result = params[0]
-        const dataItem = data[result.dataIndex]
-        return `${result.name}<br/>
-                结果: ${dataItem.yhsj}<br/>
-                状态: ${dataItem.skbz ? '失控' : '在控'}`
+        let html = params[0] ? params[0].name + '<br/>' : ''
+        params.forEach(p => {
+          if (p.value == null) return
+          const di = p.dataIndex
+          const d = data[di]
+          if (p.seriesName === '失控') {
+            html += `<span style="color:#f56c6c;font-weight:bold">${p.seriesName}: ${p.value}</span>`
+            if (d.westgardRules) html += ` (${d.westgardRules})`
+            if (d.westgardMessages) html += `<br/><span style="font-size:11px;color:#999">${d.westgardMessages}</span>`
+            html += '<br/>'
+          } else if (p.seriesName === '在控') {
+            html += `${p.seriesName}: ${p.value}<br/>`
+          }
+        })
+        return html
       }
     },
-    legend: { top: 30 },
-    xAxis: { 
-      type: 'category', 
-      data: xData 
-    },
-    yAxis: { 
-      type: 'value',
-      name: firstItem.xmdw || ''
-    },
+    legend: { top: 30, selected: { '+1SD': false, '-1SD': false } },
+    grid: { top: 70, left: 60, right: 30, bottom: 30 },
+    xAxis: { type: 'category', data: xData },
+    yAxis: { type: 'value', name: firstItem.xmdw || '' },
     series: series
-  })
+  }, true)
 }
 
 // 监听趋势图数据变化
@@ -1181,9 +1421,226 @@ const formatDateShort = (date) => {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
+// ============ 失控处理 & Z分数图 ============
+const outOfControlRecords = computed(() => analysisData.value.filter(r => r.skbz))
+const oocHandling = ref('')
+const qcEvalText = ref('')
+let zScoreFullChartInstance = null
+
+const calcSdOffset = (item) => {
+  if (!item.yhsj || !item.target_bz || !item.target_bzc) return '-'
+  const yhsj = parseFloat(item.yhsj)
+  const bz = parseFloat(item.target_bz)
+  const bzc = parseFloat(item.target_bzc)
+  if (isNaN(yhsj) || isNaN(bz) || isNaN(bzc) || bzc === 0) return '-'
+  return ((yhsj - bz) / bzc).toFixed(2) + 'SD'
+}
+
+const saveOocHandling = async () => {
+  if (!analysisProjectFilter.value) return ElMessage.warning('请先选择质控项目')
+  try {
+    await saveProcessingRecord({
+      zkxmid: analysisProjectFilter.value,
+      zkcl: oocHandling.value,
+      czydm_clr: '',
+      ksrq: analysisBegDate.value || null,
+      jsrq: analysisEndDate.value || null
+    })
+    ElMessage.success('保存成功')
+  } catch (e) { ElMessage.error('保存失败') }
+}
+
+const saveQcEval = async () => {
+  if (!analysisProductFilter.value) return ElMessage.warning('请先选择质控品')
+  try {
+    await addEvaluation({
+      zkpid: analysisProductFilter.value,
+      pjmd: '月度质控评价',
+      pjjg: qcEvalText.value,
+      pjjsyj: '',
+      pjczy: ''
+    })
+    ElMessage.success('评价已保存')
+  } catch (e) { ElMessage.error('保存失败') }
+}
+
+const loadProcessingRecords = async () => {
+  if (!analysisProjectFilter.value) return
+  try {
+    const res = await fetchProcessingRecords({ zkxmid: analysisProjectFilter.value })
+    const records = res.data || []
+    if (records.length > 0 && records[0].zkcl) {
+      oocHandling.value = records.map(r => r.zkcl).join('\n')
+    }
+  } catch (e) {}
+}
+
+const renderZScoreChart = async () => {
+  if (!analysisProductFilter.value) {
+    zScoreData.value = []
+    return
+  }
+  try {
+    const res = await fetchZScoreMulti({
+      zkpid: analysisProductFilter.value,
+      begDate: analysisBegDate.value || undefined,
+      endDate: analysisEndDate.value || undefined
+    })
+    const multiData = res.data || []
+    if (multiData.length === 0) {
+      zScoreData.value = []
+      return
+    }
+    const allDates = new Set()
+    multiData.forEach(series => {
+      (series.data || []).forEach(d => {
+        if (d.syrq) allDates.add(formatDateShort(d.syrq))
+      })
+    })
+    const xData = Array.from(allDates)
+    const colors = ['#409eff', '#e6a23c', '#9b59b6']
+    const seriesList = multiData.map((s, idx) => ({
+      name: s.label || ('系列' + (idx + 1)),
+      type: 'scatter',
+      data: (s.data || []).map(d => [formatDateShort(d.syrq), Number(d.zscore || 0)]),
+      symbolSize: 8,
+      itemStyle: { color: colors[idx % colors.length] }
+    }))
+    seriesList.push({
+      type: 'line',
+      data: [],
+      markLine: {
+        silent: true,
+        data: [
+          { yAxis: 2, lineStyle: { color: '#e6a23c', type: 'dashed' }, label: { formatter: '+2SD' } },
+          { yAxis: -2, lineStyle: { color: '#e6a23c', type: 'dashed' }, label: { formatter: '-2SD' } },
+          { yAxis: 3, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: '+3SD' } },
+          { yAxis: -3, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: '-3SD' } },
+          { yAxis: 0, lineStyle: { color: '#000', type: 'solid' }, label: { formatter: '靶值' } }
+        ]
+      }
+    })
+    nextTick(() => {
+      const dom = document.getElementById('zScoreFullChart')
+      if (!dom) return
+      if (!zScoreFullChartInstance) zScoreFullChartInstance = echarts.init(dom)
+      zScoreFullChartInstance.setOption({
+        title: { text: 'Z分数图（高/中/低浓度叠加）', left: 'center', textStyle: { fontSize: 14 } },
+        tooltip: {
+          trigger: 'item',
+          formatter: p => p.seriesName ? `${p.seriesName}<br/>${p.data[0]}<br/>Z-score: ${Number(p.data[1]).toFixed(2)}` : ''
+        },
+        legend: { top: 30 },
+        grid: { top: 70, left: 60, right: 30, bottom: 30 },
+        xAxis: { type: 'category', data: xData },
+        yAxis: { type: 'value', name: 'Z-score', min: -4, max: 4 },
+        series: seriesList
+      }, true)
+    })
+  } catch (e) {
+    console.error('Z分数加载失败:', e)
+  }
+}
+
+// ============ 汇总统计 ============
+const cvTrendData = ref([])
+const zScoreData = ref([])
+const summaryStats = reactive({ total: 0, valid: 0, invalid: 0, mean_val: 0, sd_val: 0, cv_val: 0, min_val: 0, max_val: 0 })
+let cvTrendChart = null, zScoreChart = null
+
+const formatNum = (v) => {
+  if (v == null || v === '') return '-'
+  return Number(v).toFixed(2)
+}
+
+const inControlRate = computed(() => {
+  const total = summaryStats.total || 0
+  if (total === 0) return '0.0'
+  const valid = summaryStats.valid || 0
+  return ((valid / total) * 100).toFixed(1)
+})
+
+const inControlColor = computed(() => {
+  const rate = parseFloat(inControlRate.value)
+  if (rate >= 95) return '#67c23a'
+  if (rate >= 80) return '#e6a23c'
+  return '#f56c6c'
+})
+
+const loadSummaryData = async () => {
+  try {
+    const params = {}
+    if (analysisProjectFilter.value) params.zkxmid = analysisProjectFilter.value
+    if (analysisProductFilter.value) params.zkpid = analysisProductFilter.value
+    if (analysisBegDate.value) params.begDate = analysisBegDate.value
+    if (analysisEndDate.value) params.endDate = analysisEndDate.value
+
+    const [statsRes, cvRes, zRes] = await Promise.all([
+      axios.get('/api/qc/stats', { params }),
+      axios.get('/api/qc/cv-trend', { params }),
+      axios.get('/api/qc/z-score', { params })
+    ])
+    const statsData = statsRes.data?.data || statsRes.data || {}
+    Object.assign(summaryStats, statsData)
+    cvTrendData.value = cvRes.data?.data || cvRes.data || []
+    zScoreData.value = zRes.data?.data || zRes.data || []
+    await nextTick()
+    renderSummaryCharts()
+  } catch (e) { console.error(e) }
+}
+
+const renderSummaryCharts = () => {
+  const cvDom = document.getElementById('cvTrendChart')
+  if (cvDom && cvTrendData.value.length > 0) {
+    if (!cvTrendChart) cvTrendChart = echarts.init(cvDom)
+    cvTrendChart.setOption({
+      title: { text: 'CV趋势(按月)', left: 'center', textStyle: { fontSize: 13 } },
+      tooltip: { trigger: 'axis', formatter: p => `${p[0].name}<br/>CV: ${p[0].value}%<br/>SD: ${Number(cvTrendData.value[p[0].dataIndex]?.sd || 0).toFixed(4)}<br/>均值: ${Number(cvTrendData.value[p[0].dataIndex]?.mean || 0).toFixed(4)}` },
+      grid: { left: 50, right: 20, top: 40, bottom: 30 },
+      xAxis: { type: 'category', data: cvTrendData.value.map(r => r.month) },
+      yAxis: { type: 'value', name: 'CV%' },
+      series: [{ type: 'line', data: cvTrendData.value.map(r => Number(r.cv || 0).toFixed(2)), smooth: true, itemStyle: { color: '#409eff' }, areaStyle: { color: 'rgba(64,158,255,0.1)' } }]
+    })
+  }
+  const zDom = document.getElementById('zScoreChart')
+  if (zDom && zScoreData.value.length > 0) {
+    if (!zScoreChart) zScoreChart = echarts.init(zDom)
+    zScoreChart.setOption({
+      title: { text: 'Z-Score散点图', left: 'center', textStyle: { fontSize: 13 } },
+      tooltip: { trigger: 'item', formatter: p => `${p.data[0]}<br/>Z-score: ${Number(p.data[1]).toFixed(2)}` },
+      grid: { left: 50, right: 20, top: 40, bottom: 30 },
+      xAxis: { type: 'category', data: zScoreData.value.map(r => r.syrq ? r.syrq.toString().substring(0, 10) : ''), axisLabel: { rotate: 30, fontSize: 10 } },
+      yAxis: { type: 'value', name: 'Z-score', min: -4, max: 4 },
+      series: [
+        { type: 'scatter', data: zScoreData.value.map(r => {
+          const z = Number(r.zscore || 0)
+          return { value: [r.syrq ? r.syrq.toString().substring(0, 10) : '', z], itemStyle: { color: Math.abs(z) > 2 ? '#f56c6c' : '#409eff' } }
+        }), symbolSize: 6 },
+        { type: 'line', markLine: { silent: true, data: [
+          { yAxis: 2, lineStyle: { color: '#e6a23c', type: 'dashed' }, label: { formatter: '+2s' } },
+          { yAxis: -2, lineStyle: { color: '#e6a23c', type: 'dashed' }, label: { formatter: '-2s' } },
+          { yAxis: 3, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: '+3s' } },
+          { yAxis: -3, lineStyle: { color: '#f56c6c', type: 'dashed' }, label: { formatter: '-3s' } }
+        ] } }
+      ]
+    })
+  }
+}
+
+const doQcExport = () => {
+  const params = []
+  if (analysisProductFilter.value) params.push(`zkpid=${analysisProductFilter.value}`)
+  if (analysisProjectFilter.value) params.push(`zkxmid=${analysisProjectFilter.value}`)
+  if (analysisBegDate.value) params.push(`begDate=${analysisBegDate.value}`)
+  if (analysisEndDate.value) params.push(`endDate=${analysisEndDate.value}`)
+  window.open(`/api/qc/export-analysis?${params.join('&')}`, '_blank')
+}
+
 // ============ 初始化 ============
 onMounted(() => {
   loadProducts()
+  loadEvaluations()
+  loadAnalysisProducts()
 })
 </script>
 
@@ -1571,6 +2028,43 @@ onMounted(() => {
   min-height: 0;
   width: 100%;
   box-sizing: border-box;
+}
+
+.analysis-chart-wrapper {
+  display: flex;
+  gap: 15px;
+  min-height: 0;
+  flex: 1;
+}
+
+.chart-area {
+  flex: 3;
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.ooc-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 250px;
+  max-width: 350px;
+}
+
+.ooc-section {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ooc-section .data-table {
+  font-size: 12px;
 }
 
 .filter-bar {

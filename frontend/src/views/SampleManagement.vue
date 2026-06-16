@@ -26,11 +26,7 @@
               <label>病人类型</label>
               <select v-model="patientForm.type" @change="handlePatientTypeChange">
                 <option value=""> </option>
-                <option value="门诊病人">门诊病人</option>
-                <option value="住院病人">住院病人</option>
-                <option value="体检人员">体检人员</option>
-                <option value="其他病人">其他病人</option>
-                <option value="科研人员">科研人员</option>
+                <option v-for="pt in patientTypeOptions" :key="pt.bm" :value="pt.bmsm">{{ pt.bmsm }}</option>
               </select>
             </div>
             <div class="form-row">
@@ -72,7 +68,9 @@
             </div>
             <div class="form-row">
               <label>样本类型</label>
-              <input type="text" v-model="patientForm.sampleType" />
+              <el-select v-model="patientForm.sampleType" filterable clearable placeholder=" " size="small" style="flex:1">
+                <el-option v-for="st in sampleTypeOptions" :key="st.bm" :label="st.bmsm" :value="st.bmsm" />
+              </el-select>
               <label>样本形态</label>
               <input type="text" v-model="patientForm.sampleMorphology" />
             </div>
@@ -136,13 +134,13 @@
             <div class="auxiliary-panel">
               <div class="auxiliary-title">辅助功能</div>
               <div class="auxiliary-options">
-                <label><input type="checkbox" v-model="auxSettings.autoSave" disabled /> 自动保存</label>
-                <label><input type="checkbox" v-model="auxSettings.itemInherit" disabled /> 项目继承</label>
-                <label><input type="checkbox" v-model="auxSettings.autoIncrement" disabled /> 自动增加</label>
-                <label><input type="checkbox" v-model="auxSettings.autoShift" disabled /> 自动后移</label>
-                <label><input type="checkbox" v-model="auxSettings.printThenAudit" disabled /> 打印即审核</label>
-                <label><input type="checkbox" v-model="auxSettings.autoFetchResult" disabled /> 自动提取结果</label>
-                <label><input type="checkbox" v-model="auxSettings.directPrint" disabled /> 直接打印</label>
+                <label><input type="checkbox" v-model="auxSettings.autoSave" /> 自动保存</label>
+                <label><input type="checkbox" v-model="auxSettings.itemInherit" /> 项目继承</label>
+                <label><input type="checkbox" v-model="auxSettings.autoIncrement" /> 自动增加</label>
+                <label><input type="checkbox" v-model="auxSettings.autoShift" /> 自动后移</label>
+                <label><input type="checkbox" v-model="auxSettings.printThenAudit" /> 打印即审核</label>
+                <label><input type="checkbox" v-model="auxSettings.autoFetchResult" /> 自动提取结果</label>
+                <label><input type="checkbox" v-model="auxSettings.directPrint" /> 直接打印</label>
               </div>
             </div>
           </div>
@@ -184,10 +182,10 @@
       </section>
 
       <!-- 中：结果信息 -->
-      <section class="sm-panel sm-center">
-        <header class="sm-panel-header">结果信息</header>
-        <div class="sm-panel-body">
-          <table class="simple-table">
+       <section class="sm-panel sm-center">
+         <header class="sm-panel-header">结果信息</header>
+         <div class="sm-panel-body result-scroll-body">
+           <table class="simple-table">
             <thead>
               <tr>
                 <th>NO.</th>
@@ -212,9 +210,11 @@
                     type="text"
                     v-model="item.result"
                     class="cell-input"
+                    :disabled="!isResultEditable"
+                    :class="{ 'cell-input-disabled': !isResultEditable }"
                   />
                 </td>
-                <td>{{ item.flag }}</td>
+                <td><span :style="{ color: item.flag === '↑' ? '#e74c3c' : item.flag === '↓' ? '#3498db' : '' }">{{ item.flag }}</span></td>
                 <td>{{ item.refRange }}</td>
                 <td>{{ item.unit }}</td>
               </tr>
@@ -235,12 +235,12 @@
           <!-- 顶部七个Tab：仅“浏览”可用，其余按照旧系统名称置灰占位 -->
           <div class="right-tabs">
             <button class="right-tab" :class="{ active: activeRightTab === 'browse' }" @click="activeRightTab = 'browse'">浏览</button>
-            <button class="right-tab disabled" disabled>批量处理</button>
-            <button class="right-tab disabled" disabled>历史回顾</button>
-            <button class="right-tab disabled" disabled>数据处理进度</button>
-            <button class="right-tab disabled" disabled>标本处理</button>
-            <button class="right-tab disabled" disabled>申请信息</button>
-            <button class="right-tab disabled" disabled>警示信息</button>
+            <button class="right-tab" :class="{ active: activeRightTab === 'batch' }" @click="activeRightTab = 'batch'">批量处理</button>
+            <button class="right-tab" :class="{ active: activeRightTab === 'history' }" @click="activeRightTab = 'history'">历史回顾</button>
+            <button class="right-tab" :class="{ active: activeRightTab === 'progress' }" @click="activeRightTab = 'progress'">数据处理进度</button>
+            <button class="right-tab" :class="{ active: activeRightTab === 'sample' }" @click="activeRightTab = 'sample'">标本处理</button>
+            <button class="right-tab" :class="{ active: activeRightTab === 'application' }" @click="activeRightTab = 'application'">申请信息</button>
+            <button class="right-tab" :class="{ active: activeRightTab === 'warning' }" @click="activeRightTab = 'warning'">警示信息</button>
           </div>
           <div class="right-tab-content">
             <!-- 浏览Tab内容 -->
@@ -248,7 +248,7 @@
               <div class="right-filter">
               <div class="filter-row">
                 <label>样本分类</label>
-                <select v-model="patientFilter.category" @change="loadPatientsFromApi">
+                <select v-model="patientFilter.category" @change="loadPatientsFromApi" style="flex:1;">
                   <option value="所有">所有</option>
                   <option value="未审核">未审核</option>
                   <option value="已出结果">已出结果</option>
@@ -264,20 +264,16 @@
                   <option value="未收款">未收款</option>
                   <option value="已缴费">已缴费</option>
                   <option value="自费">自费</option>
-                  <option value="门诊病人">门诊病人</option>
-                  <option value="住院病人">住院病人</option>
-                  <option value="体检人员">体检人员</option>
-                  <option value="其他病人">其他病人</option>
-                  <option value="科研人员">科研人员</option>
+                  <option v-for="pt in patientTypeOptions" :key="'f'+pt.bm" :value="pt.bmsm">{{ pt.bmsm }}</option>
                   <option value="外院病人">外院病人</option>
                   <option value="出院病人">出院病人</option>
                 </select>
               </div>
               <div class="filter-row">
                 <label>日期</label>
-                <input type="date" v-model="patientFilter.date" @change="loadPatientsFromApi" />
+                 <input type="date" v-model="patientFilter.date" @change="loadPatientsFromApi(); $event.target.blur()" style="flex:1;" />
                 <label>样本号</label>
-                <input type="text" v-model="patientFilter.sampleNo" placeholder="样本号" @keyup.enter="loadPatientsFromApi" style="width: 120px;" />
+                <input type="text" v-model="patientFilter.sampleNo" placeholder="样本号" @keyup.enter="loadPatientsFromApi" style="flex:1;" />
                 <el-button type="primary" size="small" @click="loadPatientsFromApi">搜索</el-button>
               </div>
             </div>
@@ -302,6 +298,7 @@
                     v-for="(row, index) in patientList"
                     :key="row.id || index"
                     @click="selectPatient(row)"
+                    @contextmenu.prevent="handleRightClick($event)"
                     :class="row.id === activePatientId ? 'row-active' : ''"
                   >
                     <td>{{ index + 1 }}</td>
@@ -348,6 +345,7 @@
                 <el-button type="warning" size="small" @click="handleBatchAudit" :loading="batchLoading" :disabled="selectedPatientIds.length === 0">批量审核</el-button>
                 <el-button type="success" size="small" @click="handleBatchPrint" :loading="batchLoading" :disabled="selectedPatientIds.length === 0">批量打印</el-button>
                 <el-button type="info" size="small" @click="handleBatchUnaudit" :loading="batchLoading" :disabled="selectedPatientIds.length === 0">取消审核</el-button>
+                <el-button type="danger" size="small" @click="handleBatchInvalidate" :loading="batchLoading" :disabled="selectedPatientIds.length === 0">批量作废</el-button>
               </div>
               <div class="batch-table">
                 <table class="simple-table">
@@ -361,7 +359,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="row in patientList" :key="row.id" @click="togglePatientSelection(row)" :class="selectedPatientIds.includes(row.id) ? 'row-selected' : ''">
+                    <tr v-for="row in patientList" :key="row.id" @click="previewPatient(row)" :class="selectedPatientIds.includes(row.id) ? 'row-selected' : ''">
                       <td><input type="checkbox" :checked="selectedPatientIds.includes(row.id)" @click.stop="togglePatientSelection(row)" /></td>
                       <td>{{ row.sampleNo }}</td>
                       <td>{{ row.name }}</td>
@@ -415,37 +413,200 @@
 
             <!-- 标本处理Tab内容 -->
             <div v-show="activeRightTab === 'sample'" class="sample-tab-content">
-              <div class="sample-toolbar">
-                <label>日期：</label>
-                <input type="date" v-model="sampleIssuesDate" @change="loadSampleIssues" />
-                <el-button type="primary" size="small" @click="loadSampleIssues">刷新</el-button>
+              <!-- 拒收录入区 -->
+              <div class="rejection-form">
+                <div class="rejection-form-row">
+                  <label>条码号：</label>
+                  <input v-model="rejectForm.testBarcode" @keydown.enter.prevent="lookupBarcode" placeholder="扫码/输入条码" style="width:150px" ref="barcodeInput" />
+                  <el-button type="primary" size="small" @click="lookupBarcode">查询</el-button>
+                </div>
+                <div v-if="rejectForm.patientName" class="rejection-form-info">
+                  <div class="rejection-form-row">
+                    <label>姓名：</label><span>{{ rejectForm.patientName }}</span>
+                    <label style="margin-left:12px">性别：</label><span>{{ rejectForm.sex }}</span>
+                    <label style="margin-left:12px">年龄：</label><span>{{ rejectForm.age }}</span>
+                  </div>
+                  <div class="rejection-form-row">
+                    <label>科室：</label><span>{{ rejectForm.department }}</span>
+                    <label style="margin-left:12px">床号：</label><span>{{ rejectForm.bedNumber }}</span>
+                    <label style="margin-left:12px">标本：</label><span>{{ rejectForm.sampleType }}</span>
+                  </div>
+                </div>
+                <div class="rejection-form-row">
+                  <label>不合格原因：</label>
+                  <select v-model="rejectForm.errorReason" style="width:150px">
+                    <option value="">请选择</option>
+                    <option v-for="t in errorTypes" :key="t.code" :value="t.name">{{ t.name }}</option>
+                  </select>
+                </div>
+                <div class="rejection-form-row">
+                  <label>处理措施：</label>
+                  <select v-model="rejectForm.handlingMeasures" style="width:120px">
+                    <option value="">请选择</option>
+                    <option v-for="m in handlingMeasuresList" :key="m.code" :value="m.name">{{ m.name }}</option>
+                  </select>
+                  <input v-if="rejectForm.handlingMeasures === '其他'" v-model="rejectForm.handlingMeasuresOther" placeholder="其他措施说明" style="width:150px;margin-left:8px" />
+                </div>
+                <div class="rejection-form-row">
+                  <label>备注：</label>
+                  <input v-model="rejectForm.notes" style="width:250px" />
+                </div>
+                <div class="rejection-form-row">
+                  <label>临床接收人：</label>
+                  <input v-model="rejectForm.recipient" style="width:120px" />
+                  <el-button type="danger" size="small" @click="submitRejection" :disabled="!rejectForm.testBarcode || !rejectForm.errorReason" style="margin-left:12px">确认拒收</el-button>
+                  <el-button size="small" @click="resetRejectForm">清空</el-button>
+                </div>
               </div>
-              <div class="sample-table">
+              <!-- 拒收记录查询区 -->
+              <div class="rejection-records">
+                <div class="rejection-records-header">
+                  <label>查询日期：</label>
+                  <input type="date" v-model="rejectQueryBeginDate" style="width:130px" />
+                  <span> 至 </span>
+                  <input type="date" v-model="rejectQueryEndDate" style="width:130px" />
+                  <el-button type="primary" size="small" @click="loadRejectRecords">查询</el-button>
+                  <el-button size="small" @click="exportRejectRecords">导出</el-button>
+                </div>
+                <table class="simple-table" style="font-size:12px">
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>条码</th>
+                      <th>姓名</th>
+                      <th>不合格原因</th>
+                      <th>处理措施</th>
+                      <th>操作员</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in rejectRecords" :key="row.id">
+                      <td>{{ (row.create_time || '').substring(0, 16) }}</td>
+                      <td>{{ row.test_barcode }}</td>
+                      <td>{{ row.patient_name }}</td>
+                      <td>{{ row.error_reason }}</td>
+                      <td>{{ row.handling_measures }}</td>
+                      <td>{{ row.operator_name }}</td>
+                    </tr>
+                    <tr v-if="rejectRecords.length === 0">
+                      <td colspan="6" class="placeholder-cell">暂无拒收记录</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 历史回顾Tab内容 -->
+            <div v-show="activeRightTab === 'history'" class="history-tab-content">
+              <div class="history-toolbar">
+                <label>日期：</label>
+                <input type="date" v-model="historyDate" @change="loadHistoryRecords" />
+                <el-button type="primary" size="small" @click="loadHistoryRecords">刷新</el-button>
+              </div>
+              <div class="history-table">
                 <table class="simple-table">
                   <thead>
                     <tr>
                       <th>样本号</th>
                       <th>姓名</th>
-                      <th>状态</th>
-                      <th>是否作废</th>
+                      <th>原状态</th>
+                      <th>新状态</th>
+                      <th>操作人</th>
+                      <th>操作时间</th>
                       <th>备注</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in historyRecords" :key="row.id">
+                      <td>{{ row.sampleNo }}</td>
+                      <td>{{ row.name }}</td>
+                      <td>{{ statusText(row.oldStatus) }}</td>
+                      <td>{{ statusText(row.newStatus) }}</td>
+                      <td>{{ row.operator }}</td>
+                      <td>{{ row.operateTime }}</td>
+                      <td>{{ row.remarks }}</td>
+                    </tr>
+                    <tr v-if="historyRecords.length === 0">
+                      <td colspan="7" class="placeholder-cell">当前无历史记录</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 申请信息Tab内容 -->
+            <div v-show="activeRightTab === 'application'" class="application-tab-content">
+              <div class="application-toolbar">
+                <label>日期：</label>
+                <input type="date" v-model="applicationDate" @change="loadApplicationInfo" />
+                <el-button type="primary" size="small" @click="loadApplicationInfo">刷新</el-button>
+              </div>
+              <div class="application-table">
+                <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th>申请单号</th>
+                      <th>患者姓名</th>
+                      <th>科室</th>
+                      <th>医生</th>
+                      <th>申请日期</th>
+                      <th>状态</th>
                       <th>操作</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="row in sampleIssuesList" :key="row.id">
-                      <td>{{ row.sampleNo }}</td>
-                      <td>{{ row.name }}</td>
-                      <td>{{ statusText(row.status) }}</td>
-                      <td>{{ row.isInvalid ? '是' : '否' }}</td>
-                      <td>{{ row.remarks }}</td>
+                    <tr v-for="row in applicationList" :key="row.id">
+                      <td>{{ row.applyNo }}</td>
+                      <td>{{ row.patientName }}</td>
+                      <td>{{ row.dept }}</td>
+                      <td>{{ row.doctor }}</td>
+                      <td>{{ row.applyDate }}</td>
+                      <td>{{ row.status }}</td>
                       <td>
-                        <el-button v-if="row.isInvalid" type="success" size="small" @click="handleIssue(row, 'cancelInvalid')">取消作废</el-button>
-                        <el-button type="danger" size="small" @click="handleIssue(row, 'delete')">删除</el-button>
+                        <el-button type="primary" size="small" @click="viewApplication(row)">查看</el-button>
                       </td>
                     </tr>
-                    <tr v-if="sampleIssuesList.length === 0">
-                      <td colspan="6" class="placeholder-cell">当前无问题标本</td>
+                    <tr v-if="applicationList.length === 0">
+                      <td colspan="7" class="placeholder-cell">当前无申请信息</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 警示信息Tab内容 -->
+            <div v-show="activeRightTab === 'warning'" class="warning-tab-content">
+              <div class="warning-toolbar">
+                <label>日期：</label>
+                <input type="date" v-model="warningDate" @change="loadWarningInfo" />
+                <el-button type="primary" size="small" @click="loadWarningInfo">刷新</el-button>
+                <el-button type="danger" size="small" @click="clearAllWarnings">清除全部</el-button>
+              </div>
+              <div class="warning-table">
+                <table class="simple-table">
+                  <thead>
+                    <tr>
+                      <th>样本号</th>
+                      <th>患者姓名</th>
+                      <th>警示类型</th>
+                      <th>警示内容</th>
+                      <th>时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in warningList" :key="row.id" :class="getWarningClass(row.type)">
+                      <td>{{ row.sampleNo }}</td>
+                      <td>{{ row.patientName }}</td>
+                      <td>{{ row.type }}</td>
+                      <td>{{ row.message }}</td>
+                      <td>{{ row.createTime }}</td>
+                      <td>
+                        <el-button type="primary" size="small" @click="handleWarning(row)">处理</el-button>
+                      </td>
+                    </tr>
+                    <tr v-if="warningList.length === 0">
+                      <td colspan="6" class="placeholder-cell">当前无警示信息</td>
                     </tr>
                   </tbody>
                 </table>
@@ -512,8 +673,8 @@
                 <td>{{ row.sex }}</td>
                 <td>{{ row.age }}</td>
                 <td>
-                  <span v-if="row.status === 0" class="status-badge status-entry">录入</span>
-                  <span v-else-if="row.status === 1" class="status-badge status-inspect">已检验</span>
+                  <span v-if="row.status === 0" class="status-badge status-entry">登记</span>
+                  <span v-else-if="row.status === 1" class="status-badge status-inspect">未审核</span>
                   <span v-else-if="row.status === 2" class="status-badge status-audit">已审核</span>
                   <span v-else-if="row.status === 3" class="status-badge status-print">已打印</span>
                 </td>
@@ -545,17 +706,25 @@
       <div class="context-menu-divider"></div>
       <div class="context-menu-item" @click="handleContextInvalidate">报告作废</div>
       <div class="context-menu-item" @click="handleContextUnaudit">取消审核</div>
+      <div class="context-menu-item" @click="handleContextEditTime">修改审核时间</div>
       <div class="context-menu-divider"></div>
       <div class="context-menu-item" @click="showContextMenu = false">取消</div>
     </div>
+
+    <EditTimeDialog v-model:visible="editTimeVisible" :sample="patientForm" @confirm="handleEditTimeConfirm" />
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, onUnmounted, inject, watch } from 'vue'
+import { reactive, ref, onMounted, onUnmounted, inject, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { fetchPatients, saveSample, inspectSample, auditSample, printSample, searchSamples, getNextSampleNo, fetchCombos, fetchComboItems, fetchResults, fetchReportHtml, batchAudit, batchPrint, batchInvalidate, batchUnaudit, getProgressStats, getSampleIssues, handleSampleIssue } from '@/api/sample'
+import { fetchPatients, saveSample, inspectSample, auditSample, unauditSample, printSample, searchSamples, getNextSampleNo, fetchCombos, fetchComboItems, fetchResults, fetchReportHtml, batchAudit, batchPrint, batchInvalidate, batchUnaudit, getProgressStats, getSampleIssues, handleSampleIssue, getHistoryRecords, getApplicationInfo, getWarningInfo, clearWarnings, getErrorTypes, getHandlingMeasures, handleSpecimenError, reportIncorrect, getRejectRecords, extractFromInstrument, getExtractStatus, fetchDropdownOptions } from '@/api/sample'
+import { openBatchPrintDialog } from '../utils/eventBus'
+import { useInstrumentStore } from '../utils/instrumentStore'
+import { fetchActiveFlags } from '../api/highlowFlag'
+import { getStatusText } from '../utils/sampleStatus'
+import EditTimeDialog from '../components/dialogs/EditTimeDialog.vue'
 
 const router = useRouter()
 
@@ -609,8 +778,51 @@ const selectedComboId = ref(null)
 const resultItems = ref([])
 const activeResultIndex = ref(-1)
 
+const flagConfig = ref({ high: '↑', low: '↓', alarmHigh: '↑↑', alarmLow: '↓↓' })
+
+const patientTypeOptions = ref([])
+const sampleTypeOptions = ref([])
+
+const loadDropdownOptions = async () => {
+  try {
+    const { data } = await fetchDropdownOptions()
+    if (data.patientTypes) patientTypeOptions.value = data.patientTypes
+    if (data.sampleTypes) sampleTypeOptions.value = data.sampleTypes
+  } catch (e) {
+    console.warn('加载下拉选项失败', e)
+  }
+}
+
+const loadFlagConfig = async () => {
+  try {
+    const { data } = await fetchActiveFlags()
+    if (data) flagConfig.value = data
+  } catch (e) {}
+}
+
+const calcFlag = (result, refRange, criticalLow, criticalHigh) => {
+  if (!result || isNaN(parseFloat(result))) return ''
+  const val = parseFloat(result)
+  const cfg = flagConfig.value
+  if (criticalHigh && !isNaN(parseFloat(criticalHigh)) && val > parseFloat(criticalHigh)) return cfg.alarmHigh || '↑↑'
+  if (criticalLow && !isNaN(parseFloat(criticalLow)) && val < parseFloat(criticalLow)) return cfg.alarmLow || '↓↓'
+  if (refRange) {
+    const match = String(refRange).match(/([\d.]+)\s*[-–—]\s*([\d.]+)/)
+    if (match) {
+      const low = parseFloat(match[1])
+      const high = parseFloat(match[2])
+      if (!isNaN(low) && !isNaN(high)) {
+        if (val < low) return cfg.low || '↓'
+        if (val > high) return cfg.high || '↑'
+      }
+    }
+  }
+  return ''
+}
+
 // 当前绑定的仪器（从 MainFrame 选择后写入 localStorage）
 const currentDevice = ref(null)
+const instrumentStore = useInstrumentStore()
 
 // 右侧"患者信息浏览"过滤条件
 const patientFilter = reactive({
@@ -622,6 +834,20 @@ const patientFilter = reactive({
 const patientList = ref([])
 const activePatientId = ref(null)
 const activeBrxxId = ref(null) // 当前编辑样本对应的 brxx_id（保存后由后端返回）
+const currentSampleStatus = ref(null)
+const isNewMode = ref(false) // 新增模式，阻止自动选中
+const hasEverSelected = ref(false) // 用户是否手动选过样本，刷新时不自动选中
+
+const isResultEditable = computed(() => {
+  const s = currentSampleStatus.value
+  if (s === null || s === undefined) return true
+  return s === 0 || s === 1 || s === 4
+})
+
+const canAudit = computed(() => {
+  const s = currentSampleStatus.value
+  return s === 1 || s === 4
+})
 
 // 右侧Tab状态管理
 const activeRightTab = ref('browse') // browse: 浏览, batch: 批量处理, history: 历史回顾, progress: 数据处理进度, sample: 标本处理
@@ -640,6 +866,95 @@ const auxSettings = reactive({
   autoFetchResult: false,   // 自动提取结果
   directPrint: false        // 直接打印
 })
+
+// ==================== 撤销/重做 历史栈管理 ====================
+const MAX_HISTORY = 50
+
+// 状态快照结构
+const createSnapshot = () => ({
+  patientForm: JSON.parse(JSON.stringify(patientForm)),
+  resultItems: JSON.parse(JSON.stringify(resultItems.value)),
+  selectedComboId: selectedComboId.value,
+  timestamp: Date.now()
+})
+
+// 恢复快照
+const restoreSnapshot = (snapshot) => {
+  if (!snapshot) return
+  Object.assign(patientForm, snapshot.patientForm)
+  resultItems.value = snapshot.resultItems
+  selectedComboId.value = snapshot.selectedComboId
+}
+
+const historyStack = ref([])
+const redoStack = ref([])
+const lastSavedState = ref(null) // 用于脏检测
+
+// 保存快照（带防抖）
+let saveSnapshotTimer = null
+const saveSnapshot = (immediate = false) => {
+  if (saveSnapshotTimer) {
+    clearTimeout(saveSnapshotTimer)
+    saveSnapshotTimer = null
+  }
+  const doSave = () => {
+    // 新变化清除重做栈
+    redoStack.value = []
+    const snapshot = createSnapshot()
+    historyStack.value.push(snapshot)
+    // 限制栈大小
+    if (historyStack.value.length > MAX_HISTORY) {
+      historyStack.value.shift()
+    }
+  }
+  if (immediate) {
+    doSave()
+  } else {
+    saveSnapshotTimer = setTimeout(doSave, 500)
+  }
+}
+
+// 撤销
+const undo = () => {
+  if (historyStack.value.length === 0) {
+    ElMessage.info('没有可撤销的操作')
+    return
+  }
+  // 保存当前状态到重做栈
+  const currentSnapshot = createSnapshot()
+  redoStack.value.push(currentSnapshot)
+  // 恢复上一个状态
+  const prevSnapshot = historyStack.value.pop()
+  restoreSnapshot(prevSnapshot)
+  ElMessage.info('已撤销')
+}
+
+// 重做
+const redo = () => {
+  if (redoStack.value.length === 0) {
+    ElMessage.info('没有可重做的操作')
+    return
+  }
+  // 保存当前状态到历史栈
+  const currentSnapshot = createSnapshot()
+  historyStack.value.push(currentSnapshot)
+  // 恢复重做状态
+  const nextSnapshot = redoStack.value.pop()
+  restoreSnapshot(nextSnapshot)
+  ElMessage.info('已重做')
+}
+
+// 脏状态检测
+const isDirty = computed(() => {
+  if (!lastSavedState.value) return false
+  const current = createSnapshot()
+  return JSON.stringify(current.patientForm) !== JSON.stringify(lastSavedState.value.patientForm) ||
+         JSON.stringify(current.resultItems) !== JSON.stringify(lastSavedState.value.resultItems)
+})
+
+// 刷新相关状态
+const lastRefreshTime = ref(null)
+const isRefreshing = ref(false)
 
 // 数据处理进度相关
 const progressStatsDate = ref(new Date().toISOString().slice(0, 10))
@@ -667,6 +982,122 @@ const loadProgressStats = async () => {
 const sampleIssuesDate = ref(new Date().toISOString().slice(0, 10))
 const sampleIssuesList = ref([])
 
+const errorTypes = ref([])
+const handlingMeasuresList = ref([])
+const rejectForm = ref({
+  testBarcode: '', patientName: '', sex: '', age: '', patientType: null,
+  department: '', bedNumber: '', sampleType: '', itemName: '',
+  errorReason: '', handlingMeasures: '', handlingMeasuresOther: '',
+  notes: '', recipient: '', brxxId: null
+})
+const rejectRecords = ref([])
+const rejectQueryBeginDate = ref(new Date().toISOString().slice(0, 10))
+const rejectQueryEndDate = ref(new Date().toISOString().slice(0, 10))
+
+const loadErrorTypes = async () => {
+  try {
+    const res = await getErrorTypes()
+    errorTypes.value = res.data || []
+  } catch (e) { console.error('加载错误类型失败:', e) }
+}
+const loadHandlingMeasures = async () => {
+  try {
+    const res = await getHandlingMeasures()
+    handlingMeasuresList.value = res.data || []
+  } catch (e) { console.error('加载处理措施失败:', e) }
+}
+const lookupBarcode = async () => {
+  const barcode = rejectForm.value.testBarcode.trim()
+  if (!barcode) return
+  try {
+    const res = await fetchPatients({ barcode })
+    const list = res.data || []
+    if (list.length > 0) {
+      const p = list[0]
+      rejectForm.value.brxxId = p.id
+      rejectForm.value.patientName = p.name
+      rejectForm.value.sex = p.sex === 1 ? '男' : p.sex === 2 ? '女' : ''
+      rejectForm.value.age = p.age
+      rejectForm.value.department = p.ward
+      rejectForm.value.bedNumber = p.bed || ''
+      rejectForm.value.sampleType = p.specimenType || ''
+      rejectForm.value.patientType = p.type
+    } else {
+      ElMessage.warning('未找到该条码对应的样本')
+    }
+  } catch (err) {
+    ElMessage.error('查询失败: ' + (err.response?.data?.message || err.message))
+  }
+}
+const submitRejection = async () => {
+  const form = rejectForm.value
+  if (!form.testBarcode || !form.patientName) { ElMessage.warning('请先查询样本信息'); return }
+  if (!form.errorReason) { ElMessage.warning('请选择不合格原因'); return }
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const res = await handleSpecimenError(form.brxxId, {
+      errorType: (errorTypes.value.find(t => t.name === form.errorReason) || {}).code,
+      errorReason: form.errorReason,
+      handlingMeasures: form.handlingMeasures,
+      handlingMeasuresOther: form.handlingMeasuresOther,
+      notes: form.notes,
+      recipient: form.recipient,
+      operatorCode: user.czydm || '',
+      operatorName: user.czymc || user.czyxm || '',
+      testBarcode: form.testBarcode,
+      patientName: form.patientName,
+      sex: form.sex,
+      age: form.age,
+      patientType: form.patientType,
+      department: form.department,
+      bedNumber: form.bedNumber,
+      sampleType: form.sampleType
+    })
+    if (res.data.success) {
+      ElMessage.success('标本拒收处理成功')
+      resetRejectForm()
+      loadRejectRecords()
+      loadPatientsFromApi()
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  } catch (err) {
+    ElMessage.error('处理失败: ' + (err.response?.data?.message || err.message))
+  }
+}
+const resetRejectForm = () => {
+  rejectForm.value = {
+    testBarcode: '', patientName: '', sex: '', age: '', patientType: null,
+    department: '', bedNumber: '', sampleType: '', itemName: '',
+    errorReason: '', handlingMeasures: '', handlingMeasuresOther: '',
+    notes: '', recipient: '', brxxId: null
+  }
+}
+const loadRejectRecords = async () => {
+  try {
+    const res = await getRejectRecords({
+      beginDate: rejectQueryBeginDate.value,
+      endDate: rejectQueryEndDate.value
+    })
+    rejectRecords.value = res.data || []
+  } catch (e) { console.error('加载拒收记录失败:', e) }
+}
+const exportRejectRecords = () => {
+  if (rejectRecords.value.length === 0) { ElMessage.warning('无数据可导出'); return }
+  const header = '时间,条码,姓名,性别,年龄,科室,不合格原因,处理措施,备注,操作员\n'
+  const rows = rejectRecords.value.map(r =>
+    `"${(r.create_time || '').substring(0, 16)}","${r.test_barcode || ''}","${r.patient_name || ''}","${r.sex || ''}","${r.age || ''}","${r.department || ''}","${r.error_reason || ''}","${r.handling_measures || ''}","${r.notes || ''}","${r.operator_name || ''}"`
+  ).join('\n')
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM + header + rows], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `拒收记录_${rejectQueryBeginDate.value}_${rejectQueryEndDate.value}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 const loadSampleIssues = async () => {
   try {
     const res = await getSampleIssues(sampleIssuesDate.value)
@@ -691,6 +1122,76 @@ const handleIssue = async (row, action) => {
   }
 }
 
+// 历史回顾相关
+const historyDate = ref(new Date().toISOString().slice(0, 10))
+const historyRecords = ref([])
+
+const loadHistoryRecords = async () => {
+  try {
+    const res = await getHistoryRecords(historyDate.value)
+    historyRecords.value = res.data || []
+  } catch (err) {
+    console.error('加载历史记录失败:', err)
+  }
+}
+
+// 申请信息相关
+const applicationDate = ref(new Date().toISOString().slice(0, 10))
+const applicationList = ref([])
+
+const loadApplicationInfo = async () => {
+  try {
+    const res = await getApplicationInfo(applicationDate.value)
+    applicationList.value = res.data || []
+  } catch (err) {
+    console.error('加载申请信息失败:', err)
+  }
+}
+
+const viewApplication = (row) => {
+  ElMessage.info('查看申请详情: ' + row.applyNo)
+}
+
+// 警示信息相关
+const warningDate = ref(new Date().toISOString().slice(0, 10))
+const warningList = ref([])
+
+const loadWarningInfo = async () => {
+  try {
+    const res = await getWarningInfo(warningDate.value)
+    warningList.value = res.data || []
+  } catch (err) {
+    console.error('加载警示信息失败:', err)
+  }
+}
+
+const getWarningClass = (type) => {
+  if (type === '危急值') return 'warning-critical'
+  if (type === '异常值') return 'warning-abnormal'
+  return ''
+}
+
+const handleWarning = (row) => {
+  ElMessage.info('处理警示: ' + row.message)
+}
+
+const clearAllWarnings = async () => {
+  try {
+    await ElMessageBox.confirm('确定要清除所有警示信息吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    const res = await clearWarnings()
+    if (res.data.success) {
+      ElMessage.success('已清除')
+      loadWarningInfo()
+    }
+  } catch (err) {
+    if (err !== 'cancel') console.error('清除失败:', err)
+  }
+}
+
 // 批量处理：选中/取消选中样本
 const togglePatientSelection = (row) => {
   const index = selectedPatientIds.value.indexOf(row.id)
@@ -699,6 +1200,13 @@ const togglePatientSelection = (row) => {
   } else {
     selectedPatientIds.value.splice(index, 1)
   }
+}
+
+// 批量处理：仅预览样本（不改变选中状态）
+const previewPatient = (row) => {
+  activePatientId.value = row.id
+  activeBrxxId.value = row.id
+  currentSampleStatus.value = row.status != null ? Number(row.status) : null
 }
 
 // 批量处理：全选当天已审核样本
@@ -719,6 +1227,7 @@ const handleBatchAudit = async () => {
     return
   }
   try {
+    await ElMessageBox.confirm(`确定要批量审核选中的 ${selectedPatientIds.value.length} 条样本吗？`, '批量审核')
     batchLoading.value = true
     const res = await batchAudit(selectedPatientIds.value)
     if (res.data.success) {
@@ -729,7 +1238,7 @@ const handleBatchAudit = async () => {
       ElMessage.warning(res.data.message)
     }
   } catch (err) {
-    ElMessage.error('批量审核失败: ' + (err.response?.data?.message || err.message))
+    if (err !== 'cancel') ElMessage.error('批量审核失败: ' + (err.response?.data?.message || err.message))
   } finally {
     batchLoading.value = false
   }
@@ -741,21 +1250,7 @@ const handleBatchPrint = async () => {
     ElMessage.warning('请先选择要打印的样本')
     return
   }
-  try {
-    batchLoading.value = true
-    const res = await batchPrint(selectedPatientIds.value)
-    if (res.data.success) {
-      ElMessage.success(res.data.message)
-      clearSelection()
-      loadPatientsFromApi()
-    } else {
-      ElMessage.warning(res.data.message)
-    }
-  } catch (err) {
-    ElMessage.error('批量打印失败: ' + (err.response?.data?.message || err.message))
-  } finally {
-    batchLoading.value = false
-  }
+  openBatchPrintDialog(selectedPatientIds.value, patientFilter.date)
 }
 
 // 批量取消审核
@@ -765,6 +1260,7 @@ const handleBatchUnaudit = async () => {
     return
   }
   try {
+    await ElMessageBox.confirm(`确定要取消审核选中的 ${selectedPatientIds.value.length} 条样本吗？`, '批量取消审核')
     batchLoading.value = true
     const res = await batchUnaudit(selectedPatientIds.value)
     if (res.data.success) {
@@ -775,7 +1271,35 @@ const handleBatchUnaudit = async () => {
       ElMessage.warning(res.data.message)
     }
   } catch (err) {
-    ElMessage.error('批量取消审核失败: ' + (err.response?.data?.message || err.message))
+    if (err !== 'cancel') ElMessage.error('批量取消审核失败: ' + (err.response?.data?.message || err.message))
+  } finally {
+    batchLoading.value = false
+  }
+}
+
+// 批量作废
+const handleBatchInvalidate = async () => {
+  if (selectedPatientIds.value.length === 0) {
+    ElMessage.warning('请先选择要作废的样本')
+    return
+  }
+  try {
+    const { value: reason } = await ElMessageBox.prompt('请输入作废原因', '批量作废', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputValidator: (val) => val ? true : '作废原因不能为空'
+    })
+    batchLoading.value = true
+    const res = await batchInvalidate(selectedPatientIds.value, reason)
+    if (res.data.success) {
+      ElMessage.success(res.data.message)
+      clearSelection()
+      loadPatientsFromApi()
+    } else {
+      ElMessage.warning(res.data.message)
+    }
+  } catch (err) {
+    if (err !== 'cancel') ElMessage.error('批量作废失败: ' + (err.response?.data?.message || err.message))
   } finally {
     batchLoading.value = false
   }
@@ -834,6 +1358,27 @@ const handleNew = () => {
   selectedComboId.value = null
   activePatientId.value = null
   activeBrxxId.value = null
+  currentSampleStatus.value = null
+  isNewMode.value = true
+  
+  // 重置脏检测状态
+  lastSavedState.value = createSnapshot()
+  historyStack.value = []
+  redoStack.value = []
+
+  // 滚动到表单顶部
+  const formEl = document.querySelector('.sample-management')
+  if (formEl) {
+    formEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  // 聚焦到样本号输入框
+  setTimeout(() => {
+    const sampleNoInput = document.querySelector('input[v-model="patientForm.sampleNo"]')
+    if (sampleNoInput) {
+      sampleNoInput.focus()
+    }
+  }, 100)
 
   // 新增(F9)：自动生成当天递增样本号（yyyyMMdd + 4位流水）
   const targetDate = patientFilter.date || new Date().toISOString().slice(0, 10)
@@ -848,19 +1393,13 @@ const handleNew = () => {
     })
     .catch((e) => {
       console.error('handleNew - 获取样本号失败:', e)
-      // 取号失败不阻断新增，只是让用户手工录入
     })
   ElMessage.info('已进入新增样本状态，请录入样本信息和检验项目')
 }
 
 const statusText = (status) => {
-  if (status === null || status === undefined || status === '') return '录入'
-  const s = Number(status)
-  if (s === 0) return '录入'
-  if (s === 1) return '已检验'
-  if (s === 2) return '已审核'
-  if (s === 3) return '已打印'
-  return String(status)
+  if (status === null || status === undefined || status === '') return '登记'
+  return getStatusText(Number(status))
 }
 
 const urgencyText = (urgency) => {
@@ -944,6 +1483,9 @@ const handleSave = () => {
     ElMessage.warning('住院病人必须输入住院号，请输入正确的住院号！')
     return
   }
+  // 保存前先保存快照
+  saveSnapshot(true)
+  
   // 将当前病人信息 + 结果 + 当前仪器ID 打包发送到后端
   const sbDjid =
     currentDevice.value?.sb_djid ||
@@ -954,7 +1496,12 @@ const handleSave = () => {
     brxx_id: activeBrxxId.value,
     patient: { ...patientForm },
     results: resultItems.value,
-    sb_djid: sbDjid
+    sb_djid: sbDjid,
+    bgbh: instrumentStore.state.bgbh || null,
+    bgmc: instrumentStore.state.bgmc || null,
+    bgbt: instrumentStore.state.bgbt || null,
+    bgyj: instrumentStore.state.bgyj || null,
+    bgjglx: instrumentStore.state.bgjglx || null
   }
   saveSample(payload)
     .then((res) => {
@@ -962,11 +1509,12 @@ const handleSave = () => {
         ElMessage.success(res.data.message || '样本信息保存成功')
         if (res.data.brxx_id) {
           activeBrxxId.value = res.data.brxx_id
-          // 同步回填到 patientForm，后续再保存视为“修改保存”
+          activePatientId.value = res.data.brxx_id
           patientForm.brxx_id = res.data.brxx_id
         }
-        // 保存成功后刷新右侧列表
+        lastSavedState.value = createSnapshot()
         loadPatientsFromApi()
+        autoExtract()
       } else {
         ElMessage.error(res.data?.message || '样本保存失败')
       }
@@ -976,10 +1524,84 @@ const handleSave = () => {
     })
 }
 
-// 撤销当前修改
-const handleCancel = () => {
-  handleNew()
-  ElMessage.info('已撤销当前输入')
+// 自动提取结果
+const autoExtract = async () => {
+  if (!auxSettings.autoFetchResult) return
+  if (!currentDevice.value?.sb_djid) return
+  
+  try {
+    const { data } = await extractFromInstrument({
+      sbDjid: currentDevice.value.sb_djid,
+      beginDate: new Date().toISOString().slice(0, 10),
+      czydm: JSON.parse(localStorage.getItem('user') || '{}').czydm || 'admin',
+      bz: 1,
+      patientName: patientForm.name || ''
+    })
+    if (data.success) {
+      ElMessage.success(data.message || '自动提取成功')
+      if (toolbarHandlers.value.refresh) {
+        toolbarHandlers.value.refresh()
+      }
+      if (activeBrxxId.value) {
+        loadResults(activeBrxxId.value)
+      }
+    }
+  } catch (e) {
+    console.error('自动提取失败:', e)
+  }
+}
+
+const handleToolbarExtract = async () => {
+  if (!currentDevice.value?.sb_djid) {
+    ElMessage.warning('请先选择仪器')
+    return
+  }
+  if (!activeBrxxId.value) {
+    ElMessage.warning('请先选择样本信息')
+    return
+  }
+  if (!patientForm.name || !patientForm.name.trim()) {
+    ElMessage.warning('请先录入患者姓名')
+    return
+  }
+  try {
+    const { data } = await extractFromInstrument({
+      sbDjid: currentDevice.value.sb_djid,
+      beginDate: null,
+      czydm: JSON.parse(localStorage.getItem('user') || '{}').czydm || 'admin',
+      bz: 1,
+      patientName: patientForm.name
+    })
+    if (data.success) {
+      ElMessage.success(data.message || '提取成功')
+      await loadPatientsFromApi()
+      if (activeBrxxId.value) {
+        loadResults(activeBrxxId.value)
+      }
+    } else {
+      ElMessage.error(data.message || '提取失败')
+    }
+  } catch (e) {
+    ElMessage.error('提取失败：' + (e.message || '未知错误'))
+  }
+}
+
+const handleCancel = async () => {
+  if (isDirty.value) {
+    try {
+      await ElMessageBox.confirm('确定要放弃当前编辑吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      handleNew()
+      ElMessage.info('已放弃当前编辑')
+    } catch {
+      // 用户取消
+    }
+  } else {
+    undo()
+  }
 }
 
 // 检验：将当前样本 ybzt 置为“接收/已检验”
@@ -988,7 +1610,8 @@ const handleInspect = () => {
     ElMessage.warning('请先在右侧选择要检验的样本或保存当前样本')
     return
   }
-  inspectSample(activeBrxxId.value)
+  const czydm = JSON.parse(localStorage.getItem('user') || '{}').czydm || 'admin'
+  inspectSample(activeBrxxId.value, czydm)
     .then((res) => {
       if (res.data?.success) {
         ElMessage.success(res.data.message || '检验完成')
@@ -1008,6 +1631,19 @@ const handleAudit = () => {
     ElMessage.warning('请先在右侧选择要审核的样本或保存当前样本')
     return
   }
+  const s = currentSampleStatus.value
+  if (s === 2) {
+    ElMessage.warning('该样本已审核，不能重复审核')
+    return
+  }
+  if (s === 3) {
+    ElMessage.warning('该样本已打印，不能审核')
+    return
+  }
+  if (s !== 1 && s !== 4) {
+    ElMessage.warning('样本状态不是未审核/已检验，无法审核')
+    return
+  }
   auditSample(activeBrxxId.value)
     .then((res) => {
       if (res.data?.success) {
@@ -1020,6 +1656,56 @@ const handleAudit = () => {
     .catch((e) => {
       ElMessage.error(e.response?.data?.message || e.message || '审核失败')
     })
+}
+
+const handleCancelAudit = () => {
+  if (!activeBrxxId.value) {
+    ElMessage.warning('请先在右侧选择要取消审核的样本')
+    return
+  }
+  ElMessageBox.confirm('确定要取消审核此样本吗？', '取消审核', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    unauditSample(activeBrxxId.value)
+      .then((res) => {
+        if (res.data?.success) {
+          ElMessage.success('取消审核成功')
+          loadPatientsFromApi()
+        } else {
+          ElMessage.error(res.data?.message || '取消审核失败')
+        }
+      })
+      .catch((e) => {
+        ElMessage.error(e.response?.data?.message || e.message || '取消审核失败')
+      })
+  }).catch(() => {})
+}
+
+const handleModifyAudit = () => {
+  if (!activeBrxxId.value) {
+    ElMessage.warning('请先在右侧选择要修改审核的样本')
+    return
+  }
+  ElMessageBox.confirm('修改审核将取消当前审核状态，确定继续吗？', '修改审核', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    unauditSample(activeBrxxId.value)
+      .then((res) => {
+        if (res.data?.success) {
+          ElMessage.success('已取消审核，可修改后重新审核')
+          loadPatientsFromApi()
+        } else {
+          ElMessage.error(res.data?.message || '操作失败')
+        }
+      })
+      .catch((e) => {
+        ElMessage.error(e.response?.data?.message || e.message || '操作失败')
+      })
+  }).catch(() => {})
 }
 
 const printPreviewVisible = ref(false)
@@ -1190,6 +1876,21 @@ const handleClickOutside = () => {
   showContextMenu.value = false
 }
 
+const editTimeVisible = ref(false)
+
+const handleContextEditTime = () => {
+  if (!activePatientId.value) {
+    ElMessage.warning('请先选择一个样本')
+  } else {
+    editTimeVisible.value = true
+  }
+  showContextMenu.value = false
+}
+
+const handleEditTimeConfirm = () => {
+  loadPatientsFromApi()
+}
+
 const searchForm = reactive({
   sampleNo: '',
   name: '',
@@ -1270,9 +1971,28 @@ const handleSelectDate = (dateStr) => {
 }
 
 // 刷新：刷新右侧样本列表
-const handleRefresh = () => {
-  loadPatientsFromApi()
-  ElMessage.success('已刷新样本列表')
+const handleRefresh = async () => {
+  if (isDirty.value) {
+    try {
+      await ElMessageBox.confirm('当前有未保存的修改，确定要刷新吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+    } catch {
+      return
+    }
+  }
+  isRefreshing.value = true
+  try {
+    await loadPatientsFromApi()
+    lastRefreshTime.value = new Date().toLocaleTimeString()
+    ElMessage.success('已刷新样本列表')
+  } catch (e) {
+    ElMessage.error('刷新失败')
+  } finally {
+    isRefreshing.value = false
+  }
 }
 
 // 回顾功能：查看历史记录（暂时复用查找功能，显示最近的数据）
@@ -1310,7 +2030,10 @@ const loadResults = (brxxId) => {
         name: r.name,
         unit: r.unit,
         refRange: r.refRange,
-        result: r.result
+        result: r.result,
+        criticalLow: r.criticalLow,
+        criticalHigh: r.criticalHigh,
+        flag: r.highLowFlag || calcFlag(r.result, r.refRange, r.criticalLow, r.criticalHigh)
       }))
       activeResultIndex.value = resultItems.value.length > 0 ? 0 : -1
     })
@@ -1372,7 +2095,7 @@ const selectCombo = (combo) => {
       console.log('selectCombo - 响应成功:', res.data)
       const list = res.data || []
       resultItems.value = list.map((item) => ({
-        xmid: item.id,  // 使用后端返回的id作为xmid
+        xmid: item.xmid,
         code: item.code,
         name: item.name,
         unit: item.unit || '',
@@ -1392,21 +2115,76 @@ const selectCombo = (combo) => {
 }
 
 // 选择右侧病人列表中的一条记录，回填到左边和中间区域
-const selectPatient = (row) => {
-  activePatientId.value = row.id
-  activeBrxxId.value = row.id
-  patientForm.brxx_id = row.id
-  // 回填基础字段（结果从后端加载）
-  patientForm.sampleNo = row.sampleNo || ''
-  patientForm.barcode = row.barcode || ''
-  patientForm.patientId = row.patientId || ''
-  patientForm.name = row.name || ''
-  patientForm.sex = row.sex || ''
-  patientForm.age = row.age || ''
-  patientForm.bedNo = row.bedNo || ''
-  patientForm.ward = row.ward || ''
-  loadResults(row.id)
-}
+  const selectPatient = (row, refillForm = true) => {
+    hasEverSelected.value = true
+    activePatientId.value = row.id
+    activeBrxxId.value = row.id
+    currentSampleStatus.value = row.status != null ? Number(row.status) : null
+    patientForm.brxx_id = row.id
+    if (refillForm) {
+      patientForm.sampleNo = row.sampleNo || ''
+      patientForm.barcode = row.barcode || ''
+      patientForm.patientId = row.patientId || ''
+      patientForm.name = row.name || ''
+      const sexVal = row.sexCode || row.sex
+      if (sexVal === '男' || sexVal === 1 || sexVal === '1' || sexVal === 'M') {
+        patientForm.sex = 'M'
+      } else if (sexVal === '女' || sexVal === 2 || sexVal === '2' || sexVal === 'F') {
+        patientForm.sex = 'F'
+      } else {
+        patientForm.sex = ''
+      }
+      patientForm.age = row.age || ''
+      const nllx = String(row.ageUnit || row.nllx || 'Y')
+      if (nllx === 'Y' || nllx === '1' || nllx === '岁') {
+        patientForm.ageUnit = 'Y'
+      } else if (nllx === 'M' || nllx === '2' || nllx === '月') {
+        patientForm.ageUnit = 'M'
+      } else if (nllx === 'D' || nllx === '3' || nllx === '天') {
+        patientForm.ageUnit = 'D'
+      } else {
+        patientForm.ageUnit = 'Y'
+      }
+      patientForm.type = row.category || ''
+      const categoryMap = { 1: '门诊病人', 2: '住院病人', 3: '体检人员', 4: '其他病人', 5: '科研人员' }
+      const ptMatch = patientTypeOptions.value.find(pt => pt.bm == row.category || pt.bm === row.category)
+      if (ptMatch) {
+        patientForm.type = ptMatch.bmsm
+      } else if (categoryMap[row.category]) {
+        patientForm.type = categoryMap[row.category]
+      }
+      patientForm.urgency = row.urgency || ''
+      if (row.urgency == 0 || row.urgency === '0') patientForm.experimentStatus = '普通'
+      else if (row.urgency == 1 || row.urgency === '1') patientForm.experimentStatus = '普通'
+      else if (row.urgency == 2 || row.urgency === '2') patientForm.experimentStatus = '紧急'
+      else if (row.urgency == 3 || row.urgency === '3') patientForm.experimentStatus = '危急'
+      patientForm.dept = row.dept || ''
+      patientForm.ward = row.ward || ''
+      patientForm.bedNo = row.bedNo || ''
+      patientForm.sampleType = row.sampleType || ''
+      patientForm.sampleTypeCode = row.sampleTypeCode || ''
+      patientForm.doctor = row.doctor || ''
+      patientForm.diagnosis = row.diagnosis || ''
+      patientForm.remarks = row.remarks || ''
+      patientForm.additionalRemarks = row.additionalRemarks || ''
+      patientForm.physicalExamUnit = row.physicalExamUnit || ''
+      patientForm.idNumber = row.idNumber || ''
+      patientForm.contactInfo = row.contactInfo || ''
+      patientForm.sampleMorphology = row.sampleMorphology || ''
+      patientForm.inspectingPhysician = row.inspectingPhysician || row.inspectDoctor || ''
+      patientForm.reviewingPhysician = row.reviewingPhysician || row.auditDoctor || ''
+      patientForm.applicationTime = row.applicationTime || ''
+      patientForm.samplingTime = row.samplingTime || ''
+      patientForm.verificationTime = row.verificationTime || ''
+      patientForm.entryPerson = row.entryPerson || ''
+      patientForm.inspectionTime = row.inspectionTime || ''
+      patientForm.reviewTime = row.reviewTime || ''
+      patientForm.printTime = row.printTime || ''
+      patientForm.printCount = row.printCount != null ? String(row.printCount) : ''
+      patientForm.submitDate = row.submitDate || ''
+    }
+    loadResults(row.id)
+  }
 
 // 为方便演示，挂载时构造一点示例病人数据
 const loadPatientsFromApi = () => {
@@ -1424,6 +2202,18 @@ const loadPatientsFromApi = () => {
       console.log('loadPatientsFromApi - 响应:', res.data)
       patientList.value = res.data || []
       console.log('loadPatientsFromApi - patientList:', patientList.value)
+      if (activePatientId.value) {
+        const match = patientList.value.find(p => p.id === activePatientId.value)
+        if (match) {
+          selectPatient(match, false)
+        } else {
+          activePatientId.value = null
+          activeBrxxId.value = null
+        }
+      } else if (patientList.value.length > 0 && !isNewMode.value && hasEverSelected.value) {
+        selectPatient(patientList.value[0])
+      }
+      isNewMode.value = false
     })
     .catch((e) => {
       console.error('loadPatientsFromApi - 错误:', e)
@@ -1436,9 +2226,38 @@ const loadPatientsFromApi = () => {
 watch(() => patientFilter.sampleNo, () => { loadPatientsFromApi() })
 watch(() => patientFilter.category, () => { loadPatientsFromApi() })
 
+// 监听表单和结果变化，自动保存快照
+watch(() => ({ ...patientForm }), () => {
+  saveSnapshot()
+  if (patientForm.name) {
+    localStorage.setItem('currentPatientName', patientForm.name)
+  }
+  if (activePatientId.value) {
+    const row = patientList.value.find(p => p.id === activePatientId.value)
+    if (row) {
+      row.name = patientForm.name
+      row.barcode = patientForm.barcode
+      row.sampleNo = patientForm.sampleNo
+      row.sex = patientForm.sex
+      row.age = patientForm.age
+      row.urgency = patientForm.urgency
+    }
+  }
+}, { deep: true })
+watch(resultItems, (items) => {
+  items.forEach(item => {
+    if (item.result !== undefined) {
+      item.flag = calcFlag(item.result, item.refRange, item.criticalLow, item.criticalHigh)
+    }
+  })
+  saveSnapshot()
+}, { deep: true })
+
 let keydownHandler = null
 
 onMounted(() => {
+  loadFlagConfig()
+  loadDropdownOptions()
   // 从 localStorage 读取当前绑定仪器；如果没有，则引导用户回到主界面选择仪器
   const devStr = localStorage.getItem('selectedDevice')
   if (!devStr) {
@@ -1459,6 +2278,8 @@ onMounted(() => {
     registerToolbarHandler('cancel', handleCancel)
     registerToolbarHandler('test', handleInspect)
     registerToolbarHandler('audit', handleAudit)
+    registerToolbarHandler('cancelAudit', handleCancelAudit)
+    registerToolbarHandler('modifyAudit', handleModifyAudit)
     registerToolbarHandler('print', handlePrint)
     registerToolbarHandler('find', handleFind)
     registerToolbarHandler('review', handleReview)
@@ -1468,18 +2289,31 @@ onMounted(() => {
 
   loadPatientsFromApi()
   loadCombos()
+  loadErrorTypes()
+  loadHandlingMeasures()
+  loadRejectRecords()
 
   // 简单绑定本页面常用快捷键（F9/F10/ESC/F7/F8），不和主框架冲突
   keydownHandler = (e) => {
-    if (e.key === 'F9') {
+    // Ctrl+Z 撤销, Ctrl+Y / Ctrl+Shift+Z 重做
+    if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault()
+      undo()
+    } else if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
+      e.preventDefault()
+      redo()
+    } else if (e.key === 'F9') {
       e.preventDefault()
       handleNew()
     } else if (e.key === 'F10') {
       e.preventDefault()
       handleSave()
     } else if (e.key === 'Escape') {
-      e.preventDefault()
-      handleCancel()
+      const activeDialogs = document.querySelectorAll('.el-dialog__wrapper')
+      if (activeDialogs.length === 0) {
+        e.preventDefault()
+        handleCancel()
+      }
     } else if (e.key === 'F7') {
       e.preventDefault()
       handleInspect()
@@ -1503,11 +2337,14 @@ onUnmounted(() => {
     unregisterToolbarHandler('cancel')
     unregisterToolbarHandler('test')
     unregisterToolbarHandler('audit')
+    unregisterToolbarHandler('cancelAudit')
+    unregisterToolbarHandler('modifyAudit')
     unregisterToolbarHandler('print')
     unregisterToolbarHandler('find')
     unregisterToolbarHandler('review')
     unregisterToolbarHandler('refresh')
     unregisterToolbarHandler('selectDate')
+    unregisterToolbarHandler('extract')
   }
 })
 </script>
@@ -1585,6 +2422,8 @@ onUnmounted(() => {
   flex-direction: row;
   padding: 2px 4px 4px;
   gap: 3px;
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
 
 .sm-panel {
@@ -1605,6 +2444,8 @@ onUnmounted(() => {
 .sm-center {
   flex: 1;
   min-width: 320px;
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
 
 .sm-right {
@@ -1632,6 +2473,20 @@ onUnmounted(() => {
   min-height: 0;
 }
 
+.result-scroll-body {
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.result-scroll-body .simple-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f5f7fa;
+}
+
 .patient-form {
   border: 1px solid #e4e7ed;
   padding: 8px 12px;
@@ -1646,15 +2501,18 @@ onUnmounted(() => {
 
 .form-row {
   display: grid;
-  grid-template-columns: 60px 1fr 60px 1fr;
-  gap: 4px 4px;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 4px 6px;
   margin-bottom: 4px;
   font-size: 12px;
+  align-items: center;
 }
 
 .form-row label {
   text-align: right;
   line-height: 28px;
+  white-space: nowrap;
+  padding-right: 2px;
 }
 
 .form-row input,
@@ -1665,14 +2523,29 @@ onUnmounted(() => {
   font-size: 13px;
   border-radius: 4px;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .form-row .full {
-  grid-column: span 3;
+  grid-column: 2 / -1;
+}
+
+.form-row :deep(.el-select) {
+  width: 100% !important;
+}
+
+.form-row :deep(.el-select .el-input__wrapper) {
+  height: 28px;
+  box-shadow: 0 0 0 1px #dcdfe6 inset;
+}
+
+.form-row :deep(.el-select .el-input__inner) {
+  font-size: 13px;
+  height: 26px;
 }
 
 .form-row .full-textarea {
-  grid-column: span 3;
+  grid-column: 2 / -1;
   height: 60px;
   resize: vertical;
   border: 1px solid #dcdfe6;
@@ -1781,8 +2654,9 @@ onUnmounted(() => {
 
 .filter-row label {
   text-align: right;
-  line-height: 22px;
-  min-width: 40px;
+  line-height: 28px;
+  white-space: nowrap;
+  min-width: auto;
 }
 
 .filter-row input,
@@ -1793,11 +2667,52 @@ onUnmounted(() => {
   font-size: 13px;
   border-radius: 4px;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .right-table {
   overflow-y: auto;
-  max-height: calc(100vh - 280px);
+  flex: 1;
+  min-height: 0;
+}
+.right-table .simple-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f5f7fa;
+}
+
+.right-tab-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.right-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.right-tab {
+  padding: 8px 16px;
+  border: none;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.right-tab:hover {
+  background: #d0d0d0;
+}
+
+.right-tab.active {
+  background: #1976d2;
+  color: white;
 }
 
 .row-active {
@@ -1810,6 +2725,12 @@ onUnmounted(() => {
   outline: none;
   height: 24px;
   box-sizing: border-box;
+}
+
+.cell-input-disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
 }
 
 .cell-urgent {
@@ -1981,6 +2902,60 @@ onUnmounted(() => {
 .sample-table {
   max-height: 350px;
   overflow-y: auto;
+}
+
+.rejection-form {
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+}
+
+.rejection-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.rejection-form-row label {
+  min-width: 80px;
+  color: #555;
+  text-align: right;
+}
+
+.rejection-form-row input,
+.rejection-form-row select {
+  padding: 3px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.rejection-form-info {
+  background: #f5f5f5;
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.rejection-records {
+  padding: 0;
+}
+
+.rejection-records-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.rejection-records-header input[type="date"] {
+  padding: 3px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 13px;
 }
 
 .auxiliary-panel {

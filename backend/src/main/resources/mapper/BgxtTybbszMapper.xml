@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtTybbszMapper">
+
+    <select id="selectByMkid" resultType="map">
+        SELECT t.id, t.mkid, t.xmid, t.mksm, j.xmzwmc, j.xmdw, j.pym
+        FROM bgxt_tsbbsz t
+        JOIN sys_jyxm j ON t.xmid = j.xmid
+        WHERE t.mkid = #{mkid}
+        ORDER BY j.xmzwmc
+    </select>
+
+    <select id="selectAllRules" resultType="map">
+        SELECT t.id, t.mkid, t.xmid, t.mksm, j.xmzwmc, j.xmdw, j.pym
+        FROM bgxt_tsbbsz t
+        JOIN sys_jyxm j ON t.xmid = j.xmid
+        ORDER BY t.mkid, j.xmzwmc
+    </select>
+
+    <insert id="insertRule">
+        INSERT INTO bgxt_tsbbsz (mkid, xmid, mksm)
+        VALUES (#{mkid}, #{xmid}, #{mksm})
+    </insert>
+
+    <delete id="deleteByMkidAndXmid">
+        DELETE FROM bgxt_tsbbsz WHERE mkid = #{mkid} AND xmid = #{xmid}
+    </delete>
+
+    <select id="countByMkidAndXmid" resultType="int">
+        SELECT COUNT(*) FROM bgxt_tsbbsz WHERE mkid = #{mkid} AND xmid = #{xmid}
+    </select>
+
+</mapper>

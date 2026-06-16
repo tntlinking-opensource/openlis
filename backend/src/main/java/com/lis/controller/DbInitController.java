@@ -1,8 +1,11 @@
 package com.lis.controller;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.DataAccessException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -12,13 +15,15 @@ import java.util.Map;
  * 数据库初始化 - 通过API执行
  */
 @RestController
-@RequestMapping("/api/debug")
+@RequestMapping("/debug")
+@Slf4j
 public class DbInitController {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @PostMapping("/init-all")
+    @Transactional
     public ResponseEntity<Map<String, Object>> initAll() {
         Map<String, Object> resp = new HashMap<>();
         try {
@@ -112,6 +117,116 @@ public class DbInitController {
 
             resp.put("success", true);
             resp.put("message", "Database init complete!");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(resp);
+        }
+    }
+
+    @PostMapping("/init-bgxt-xmzh-ygsjsz")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> initBgxtXmzhYgsjsz() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS bgxt_xmzh_ygsjsz (" +
+                "id INT PRIMARY KEY AUTO_INCREMENT, " +
+                "zhid INT NOT NULL, " +
+                "szlb INT DEFAULT 1 COMMENT '设置类别: 1=完成所需时间, 2=定点完成时间', " +
+                "qssj VARCHAR(20) COMMENT '起始时间', " +
+                "jssj VARCHAR(20) COMMENT '结束时间', " +
+                "ygrq INT DEFAULT 0 COMMENT '预告日期: 0=当日, 1=次日, 2=第三日', " +
+                "ygsj VARCHAR(20) COMMENT '完成时间', " +
+                "ddsj INT COMMENT '完成所需时间(分钟)', " +
+                "tybz TINYINT DEFAULT 0 COMMENT '停用标志: 0=启用, 1=停用', " +
+                "INDEX idx_zhid (zhid), " +
+                "INDEX idx_szlb (szlb))");
+
+            jdbcTemplate.execute("DELETE FROM bgxt_xmzh_ygsjsz");
+
+            jdbcTemplate.execute("INSERT INTO bgxt_xmzh_ygsjsz (zhid, szlb, qssj, jssj, ygrq, ygsj, ddsj, tybz) VALUES " +
+                "(3, 1, '08:00', '12:00', 0, '10:00', 60, 0), " +
+                "(3, 1, '12:00', '18:00', 0, '16:00', 60, 0), " +
+                "(2, 1, '08:00', '12:00', 0, '10:30', 90, 0), " +
+                "(2, 2, '08:00', '', 0, '10:00', 0, 0), " +
+                "(4, 1, '08:00', '18:00', 0, '12:00', 120, 0)");
+
+            Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM bgxt_xmzh_ygsjsz", Integer.class);
+
+            resp.put("success", true);
+            resp.put("message", "完成时间设置初始化完成");
+            resp.put("count", count);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(resp);
+        }
+    }
+
+    @PostMapping("/cleanup-duplicate-instruments")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> cleanupDuplicateInstruments() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            Integer before = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_sbdjb", Integer.class);
+            
+            jdbcTemplate.execute("DELETE t1 FROM sys_sbdjb t1 " +
+                "INNER JOIN sys_sbdjb t2 " +
+                "WHERE t1.sbdm = t2.sbdm AND t1.sb_djid > t2.sb_djid");
+            
+            Integer after = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_sbdjb", Integer.class);
+            
+            try {
+                jdbcTemplate.execute("ALTER TABLE sys_sbdjb ADD UNIQUE INDEX uk_sbdm (sbdm)");
+            } catch (Exception ignored) {}
+            
+            resp.put("success", true);
+            resp.put("message", "清理完成");
+            resp.put("before", before);
+            resp.put("after", after);
+            resp.put("deleted", before - after);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(resp);
+        }
+    }
+
+    @PostMapping("/init-bgxt-tsxmtat")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> initBgxtTsxmtat() {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS bgxt_tsxmtat (" +
+                "sb_djid INT NOT NULL, " +
+                "brlb INT NOT NULL, " +
+                "syqk INT NOT NULL, " +
+                "zhid INT NOT NULL, " +
+                "zhmc VARCHAR(100), " +
+                "TAT INT, " +
+                "PRIMARY KEY (sb_djid, brlb, syqk, zhid))");
+
+            jdbcTemplate.execute("DELETE FROM bgxt_tsxmtat");
+
+            jdbcTemplate.execute("INSERT INTO bgxt_tsxmtat (sb_djid, brlb, syqk, zhid, zhmc, TAT) VALUES " +
+                "(1, 1, 0, 3, '肝功能', 60), " +
+                "(1, 1, 1, 3, '肝功能', 45), " +
+                "(1, 1, 2, 3, '肝功能', 30), " +
+                "(1, 2, 0, 3, '肝功能', 90), " +
+                "(1, 2, 1, 3, '肝功能', 60), " +
+                "(1, 2, 2, 3, '肝功能', 45), " +
+                "(3, 1, 0, 2, '尿常规', 120), " +
+                "(3, 1, 1, 2, '尿常规', 60), " +
+                "(3, 1, 2, 2, '尿常规', 45)");
+
+            Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM bgxt_tsxmtat", Integer.class);
+
+            resp.put("success", true);
+            resp.put("message", "TAT数据初始化完成");
+            resp.put("count", count);
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
             resp.put("success", false);

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../views/Login.vue'
 import MainFrame from '../views/MainFrame.vue'
 import SampleManagement from '../views/SampleManagement.vue'
+import SampleAccept from '../views/SampleAccept.vue'
 import QcManagement from '../views/QcManagement.vue'
 import QueryStatistics from '../views/QueryStatistics.vue'
 
@@ -24,6 +25,11 @@ const routes = [
         path: 'sample',
         name: 'SampleManagement',
         component: SampleManagement
+      },
+      {
+        path: 'sample-accept',
+        name: 'SampleAccept',
+        component: SampleAccept
       },
       {
         path: 'qc',

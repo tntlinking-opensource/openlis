@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.TubeColorMapper">
+
+    <select id="listAll" resultType="map">
+        SELECT sgys, pym FROM bgxt_sgyssz ORDER BY pym
+    </select>
+
+    <select id="search" resultType="map">
+        SELECT sgys, pym FROM bgxt_sgyssz
+        WHERE sgys LIKE CONCAT('%', #{keyword}, '%')
+           OR pym LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY pym
+    </select>
+
+    <select id="countByPym" resultType="int">
+        SELECT COUNT(*) FROM bgxt_sgyssz WHERE pym = #{pym}
+    </select>
+
+    <insert id="insert">
+        INSERT INTO bgxt_sgyssz (sgys, pym) VALUES (#{sgys}, #{pym})
+    </insert>
+
+    <update id="update">
+        UPDATE bgxt_sgyssz SET sgys = #{sgys}, pym = #{pym} WHERE pym = #{oldPym}
+    </update>
+
+    <delete id="deleteByPym">
+        DELETE FROM bgxt_sgyssz WHERE pym = #{pym}
+    </delete>
+
+</mapper>

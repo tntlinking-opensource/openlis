@@ -2,8 +2,10 @@ package com.lis.controller;
 
 import com.lis.service.PermissionService;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -17,6 +19,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping({"/system/permission", "/permission"})
+@Slf4j
 public class PermissionController {
     
     @Autowired

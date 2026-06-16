@@ -1,5 +1,5 @@
 {
-  "name": "lis-open-java-frontend",
+  "name": "lis-web",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -12,9 +12,13 @@
     "axios": "^1.6.2",
     "echarts": "^6.0.0",
     "element-plus": "^2.4.4",
+    "file-saver": "^2.0.5",
+    "mitt": "^3.0.1",
     "pinia": "^2.1.7",
+    "stimulsoft-reports-js-vuejs": "^2026.2.2",
     "vue": "^3.3.4",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.0",

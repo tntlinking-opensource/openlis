@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysGzzdMapper">
+
+    <select id="listWorkgroups" resultType="map">
+        SELECT gzid AS id, gzdm AS gzzdm, gzmc AS gzzmc, pym,
+               '' AS gzzlx, '' AS gzzlxmc, '' AS his_ksdm, 1 AS xh, COALESCE(sybz, 1) AS sybz
+        FROM sys_gzzd WHERE 1=1
+        <if test='gzzdm != null and gzzdm != ""'> AND gzdm = #{gzzdm} </if>
+        <if test='keyword != null and keyword != ""'>
+            AND (gzmc LIKE CONCAT('%',#{keyword},'%') OR pym LIKE CONCAT('%',#{keyword},'%'))
+        </if>
+        <if test='sybzVal != null'> AND sybz = #{sybzVal} </if>
+        ORDER BY gzdm
+    </select>
+
+    <select id="findByGzdm" resultType="map">
+        SELECT gzid FROM sys_gzzd WHERE gzdm = #{gzdm}
+    </select>
+
+    <insert id="insertWorkgroup">
+        INSERT INTO sys_gzzd (gzdm, gzmc, pym, gzzlx, xh, sybz)
+        VALUES (#{gzdm}, #{gzmc}, #{pym}, #{gzzlx}, #{xh}, #{sybz})
+    </insert>
+
+    <update id="updateByGzdm">
+        UPDATE sys_gzzd
+        SET gzmc=#{gzmc}, pym=#{pym}, gzzlx=#{gzzlx}, xh=#{xh}, sybz=#{sybz}
+        WHERE gzdm=#{gzdm}
+    </update>
+
+    <delete id="cleanupGarbled">
+        DELETE FROM sys_gzzd WHERE gzid NOT IN (1,2,3,4)
+    </delete>
+
+</mapper>

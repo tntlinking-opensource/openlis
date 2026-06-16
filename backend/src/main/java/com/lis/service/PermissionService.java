@@ -1,5 +1,6 @@
 package com.lis.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.lis.entity.SysCzydm;
 import com.lis.mapper.SysCzydmMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import java.util.Map;
  * 对应旧系统6.3刷新权限功能
  */
 @Service
+@Slf4j
 public class PermissionService {
     
     @Autowired

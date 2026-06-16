@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.GzszMxMapper">
+
+    <select id="listSubcategories" resultType="map">
+        SELECT xlbh, dlid, xlmc, isuse, yxxh, tmhgs, tmfs, sflbz, cjyq, zysx, sgys, clfdm, clfmc
+        FROM gzsz_mx ORDER BY dlid, xlbh
+    </select>
+
+    <select id="listSubcategoriesByDlid" resultType="map">
+        SELECT xlbh, dlid, xlmc, isuse, yxxh, tmhgs, tmfs, sflbz, cjyq, zysx, sgys, clfdm, clfmc
+        FROM gzsz_mx WHERE dlid = #{dlid} ORDER BY xlbh
+    </select>
+
+    <insert id="insertSubcategory">
+        INSERT INTO gzsz_mx (dlid, xlmc, isuse, yxxh, tmhgs, tmfs, sflbz, cjyq, zysx, sgys, clfdm, clfmc)
+        VALUES (#{dlid}, #{xlmc}, #{isuse}, #{yxxh}, #{tmhgs}, #{tmfs}, #{sflbz}, #{cjyq}, #{zysx}, #{sgys}, #{clfdm}, #{clfmc})
+    </insert>
+
+    <update id="updateSubcategory">
+        UPDATE gzsz_mx
+        SET dlid=#{dlid}, xlmc=#{xlmc}, isuse=#{isuse}, yxxh=#{yxxh}, tmhgs=#{tmhgs},
+            tmfs=#{tmfs}, sflbz=#{sflbz}, cjyq=#{cjyq}, zysx=#{zysx}, sgys=#{sgys}, clfdm=#{clfdm}, clfmc=#{clfmc}
+        WHERE xlbh=#{xlbh}
+    </update>
+
+    <update id="bindMaterialFee">
+        UPDATE gzsz_mx SET clfdm=#{clfdm}, clfmc=#{clfmc} WHERE xlbh=#{xlbh}
+    </update>
+
+    <update id="unbindMaterialFee">
+        UPDATE gzsz_mx SET clfdm=NULL, clfmc=NULL WHERE xlbh=#{xlbh}
+    </update>
+
+    <update id="syncMaterialFee">
+        UPDATE gzsz_mx SET clfdm=#{clfdm}, clfmc=#{clfmc} WHERE sgys=#{sgys}
+    </update>
+
+    <select id="listMaterialBindings" resultType="map">
+        SELECT m.xlbh, m.dlid, m.xlmc, m.clfdm, m.clfmc, m.sgys, z.dlmc
+        FROM gzsz_mx m
+        LEFT JOIN gzsz_zb z ON m.dlid = z.dlid
+        WHERE m.clfdm IS NOT NULL AND m.clfdm != ''
+        <if test="dlid != null">AND m.dlid = #{dlid}</if>
+        <if test="xlmc != null and xlmc != ''">AND m.xlmc LIKE CONCAT('%', #{xlmc}, '%')</if>
+        ORDER BY m.dlid, m.xlbh
+    </select>
+
+</mapper>

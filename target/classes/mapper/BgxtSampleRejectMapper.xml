@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtSampleRejectMapper">
+
+  <resultMap id="BaseResultMap" type="com.lis.entity.BgxtSampleReject">
+    <id column="id" property="id"/>
+    <result column="brxx_id" property="brxxId"/>
+    <result column="test_barcode" property="testBarcode"/>
+    <result column="patient_name" property="patientName"/>
+    <result column="sex" property="sex"/>
+    <result column="age" property="age"/>
+    <result column="patient_type" property="patientType"/>
+    <result column="department" property="department"/>
+    <result column="bed_number" property="bedNumber"/>
+    <result column="sample_type" property="sampleType"/>
+    <result column="item_name" property="itemName"/>
+    <result column="class_group" property="classGroup"/>
+    <result column="error_reason" property="errorReason"/>
+    <result column="group_name" property="groupName"/>
+    <result column="handling_measures" property="handlingMeasures"/>
+    <result column="handling_measures_other" property="handlingMeasuresOther"/>
+    <result column="recipient" property="recipient"/>
+    <result column="notes" property="notes"/>
+    <result column="operator_code" property="operatorCode"/>
+    <result column="operator_name" property="operatorName"/>
+    <result column="create_time" property="createTime"/>
+  </resultMap>
+
+  <select id="selectByDateRange" resultType="java.util.Map">
+    SELECT r.*, b.syh, b.brxx_tmh
+    FROM bgxt_sample_reject r
+    LEFT JOIN bgxt_brxx b ON r.brxx_id = b.brxx_id
+    WHERE 1=1
+    <if test="beginDate != null and beginDate != ''">
+      AND r.create_time &gt;= #{beginDate}
+    </if>
+    <if test="endDate != null and endDate != ''">
+      AND r.create_time &lt;= CONCAT(#{endDate}, ' 23:59:59')
+    </if>
+    ORDER BY r.create_time DESC
+  </select>
+
+  <select id="selectByBrxxId" resultType="java.util.Map">
+    SELECT * FROM bgxt_sample_reject WHERE brxx_id = #{brxxId} ORDER BY create_time DESC LIMIT 1
+  </select>
+
+</mapper>

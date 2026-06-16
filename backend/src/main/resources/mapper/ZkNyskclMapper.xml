@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.ZkNyskclMapper">
+
+    <select id="findProcessingRecords" resultType="map">
+        SELECT id, zkxmid, zkcl, czydm_clr, ksrq, jsrq, clrq
+        FROM zk_nyskcl WHERE 1=1
+        <if test="zkxmid != null">AND zkxmid = #{zkxmid}</if>
+        <if test="monthStart != null and monthStart != ''">
+            AND DATEDIFF(#{monthStart}, ksrq) &gt;= 0 AND DATEDIFF(#{monthStart}, ksrq) &lt; 30
+        </if>
+        ORDER BY clrq DESC
+    </select>
+
+    <insert id="insertProcessingRecord">
+        INSERT INTO zk_nyskcl (zkxmid, zkcl, czydm_clr, ksrq, jsrq, clrq)
+        VALUES (#{zkxmid}, #{zkcl}, #{czydmClr}, #{ksrq}, #{jsrq}, NOW())
+    </insert>
+
+</mapper>

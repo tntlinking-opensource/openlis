@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtXmssyqMapper">
+
+    <select id="selectByXmid" resultType="map">
+        SELECT x.id, x.xmid, x.sb_djid, x.zhid, s.sbmc, s.sbdm
+        FROM bgxt_xmssyq x
+        JOIN sys_sbdjb s ON x.sb_djid = s.sb_djid
+        WHERE x.xmid = #{xmid}
+        ORDER BY s.sbmc
+    </select>
+
+    <select id="selectBySbDjid" resultType="map">
+        SELECT x.id, x.xmid, x.sb_djid, x.zhid, j.xmzwmc, j.xmdm
+        FROM bgxt_xmssyq x
+        JOIN sys_jyxm j ON x.xmid = j.xmid
+        WHERE x.sb_djid = #{sbDjid}
+        ORDER BY j.xmzwmc
+    </select>
+
+    <insert id="insertRelation">
+        INSERT INTO bgxt_xmssyq (xmid, sb_djid, zhid)
+        VALUES (#{xmid}, #{sbDjid}, #{zhid})
+    </insert>
+
+    <delete id="deleteByXmidAndSbDjid">
+        DELETE FROM bgxt_xmssyq WHERE xmid = #{xmid} AND sb_djid = #{sbDjid}
+    </delete>
+
+    <select id="countByXmidAndSbDjid" resultType="int">
+        SELECT COUNT(*) FROM bgxt_xmssyq WHERE xmid = #{xmid} AND sb_djid = #{sbDjid}
+    </select>
+
+</mapper>

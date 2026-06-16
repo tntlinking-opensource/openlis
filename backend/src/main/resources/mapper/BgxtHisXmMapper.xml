@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtHisXmMapper">
+
+  <select id="selectByBrxxId" resultType="java.util.Map">
+    SELECT h.id, h.brxx_id, h.zhid, z.zhmc AS zhxmmc,
+           COALESCE(z.his_xmdm, '') AS zhxmdm,
+           COALESCE(z.sfbz, 0) AS dj,
+           1 AS sl,
+           h.sf,
+           DATE_FORMAT(h.sfrq,'%Y-%m-%d') AS sfrq, h.czydm_sfr, h.zfbz,
+           DATE_FORMAT(h.zfrq,'%Y-%m-%d') AS zfrq, h.czydm_zfr
+    FROM bgxt_his_xm h
+    LEFT JOIN bgxt_xmzh_zb z ON h.zhid = z.zhid
+    WHERE h.brxx_id = #{brxxId}
+  </select>
+
+  <insert id="insertFromCombo">
+    INSERT INTO bgxt_his_xm (brxx_id, zhid, sf, zfbz)
+    SELECT #{brxxId}, yq.zhid, 0, 0
+    FROM bgxt_yqxmzh yq
+    INNER JOIN bgxt_brxx b ON b.brxx_id = #{brxxId} AND b.sb_djid = yq.sb_djid
+    WHERE NOT EXISTS (SELECT 1 FROM bgxt_his_xm ex WHERE ex.brxx_id = #{brxxId} AND ex.zhid = yq.zhid)
+  </insert>
+
+  <insert id="insertFromComboFallback">
+    INSERT INTO bgxt_his_xm (brxx_id, zhid, sf, zfbz)
+    SELECT #{brxxId}, zh.zhid, 0, 0
+    FROM bgxt_xmzh_zb zh
+    WHERE zh.zhmc = (SELECT b.bgmc FROM bgxt_brxx b WHERE b.brxx_id = #{brxxId})
+    AND NOT EXISTS (SELECT 1 FROM bgxt_his_xm ex WHERE ex.brxx_id = #{brxxId} AND ex.zhid = zh.zhid)
+    LIMIT 1
+  </insert>
+
+  <update id="confirmBilling">
+    UPDATE bgxt_his_xm SET sf = 1, sfrq = NOW(), czydm_sfr = #{czydm} WHERE brxx_id = #{brxxId} AND sf = 0
+  </update>
+
+  <update id="cancelBilling">
+    UPDATE bgxt_his_xm SET sf = 0, sfrq = NULL, czydm_sfr = NULL WHERE brxx_id = #{brxxId} AND sf = 1
+  </update>
+
+  <update id="invalidateBilling">
+    UPDATE bgxt_his_xm SET zfbz = 1, zfrq = NOW(), czydm_zfr = #{czydm} WHERE brxx_id = #{brxxId}
+  </update>
+
+</mapper>

@@ -1,0 +1,575 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtBrxxMapper">
+
+  <select id="selectMaxSampleSeq" resultType="java.lang.Integer">
+    SELECT MAX(CAST(SUBSTRING(syh, -4) AS UNSIGNED))
+    FROM bgxt_brxx
+    WHERE syh IS NOT NULL
+    AND LENGTH(syh) = 12
+    AND syh LIKE #{prefix}
+    AND CAST(syh AS UNSIGNED) > 0
+    AND DATE(jyrq) = DATE(#{date})
+  </select>
+
+  <select id="selectStatusById" resultType="java.lang.Integer">
+    SELECT ybzt FROM bgxt_brxx WHERE brxx_id = #{brxxId}
+  </select>
+
+  <select id="selectPrintCountById" resultType="java.lang.Integer">
+    SELECT IFNULL(dycs, 0) FROM bgxt_brxx WHERE brxx_id = #{brxxId}
+  </select>
+
+  <select id="countByDate" resultType="java.lang.Integer">
+    SELECT COUNT(1) FROM bgxt_brxx WHERE DATE(jyrq) = DATE(#{date})
+  </select>
+
+  <select id="selectIdByTmh" resultType="java.lang.Integer">
+    SELECT brxx_id FROM bgxt_brxx WHERE brxx_tmh = #{tmh} LIMIT 1
+  </select>
+
+  <select id="selectPatientContextById" resultType="java.util.Map">
+    SELECT sb_djid, bbzl, brxb, nllx, brnl FROM bgxt_brxx WHERE brxx_id = #{brxxId} LIMIT 1
+  </select>
+
+  <select id="selectReportInfoById" resultType="java.util.Map">
+    SELECT b.brxx_id, b.syh, b.brxm, b.brxb, b.brnl, b.nllx, b.brlb, b.brch, b.brxx_tmh, b.brbh, b.jyrq, b.shrq,
+    b.lczd, b.sjys, b.jyys, b.shys, b.bbzl AS bbzlCode, b.sb_djid, b.bgbh, b.bgmc, b.bgbt, b.bgyj,
+    k.ksmc AS ksdm, bb.bmsm AS bbzl,
+    (SELECT yymc FROM sys_config LIMIT 1) AS yymc
+    FROM bgxt_brxx b
+    LEFT JOIN sys_kssz k ON b.ksdm = k.ksdm
+    LEFT JOIN sys_bbzl bb ON b.bbzl = bb.bm
+    WHERE b.brxx_id=#{brxxId} LIMIT 1
+  </select>
+
+  <select id="selectFullById" resultType="java.util.Map">
+    SELECT brxx_id, brxx_tmh, brbh, brxm, brxb, brnl, nllx, brlb, syqk, ksdm, brch, syh, bbzl, ybzt, jyrq, shrq, sfbz, bz, czy, czrq
+    FROM bgxt_brxx WHERE brxx_id = #{brxxId}
+  </select>
+
+  <select id="selectBbzlNameByBm" resultType="java.lang.String">
+    SELECT bmsm FROM sys_bbzl WHERE bm = #{bm} LIMIT 1
+  </select>
+
+  <update id="updateStatusById">
+    UPDATE bgxt_brxx SET ybzt = #{ybzt} WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="inspectById">
+    UPDATE bgxt_brxx SET ybzt = 1, jyys = #{jyys} WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="auditById">
+    UPDATE bgxt_brxx SET ybzt = 2, shrq = NOW(), shys = #{shys} WHERE brxx_id = #{brxxId} AND ybzt IN (1, 4)
+  </update>
+
+  <update id="unauditById">
+    UPDATE bgxt_brxx SET ybzt = 1, shrq = NULL, shys = NULL WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updatePrintById">
+    UPDATE bgxt_brxx SET ybzt = 3, dybz = 1, dycs = #{printCount}, bgrq = NOW() WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="invalidateById">
+    UPDATE bgxt_brxx SET sfbz = 1, bz = #{reason} WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="cancelInvalidById">
+    UPDATE bgxt_brxx SET sfbz = 0, bz = #{remarks} WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updateRemarksById">
+    UPDATE bgxt_brxx SET bz = #{remarks} WHERE brxx_id = #{brxxId}
+  </update>
+
+  <delete id="deleteById">
+    DELETE FROM bgxt_brxx WHERE brxx_id = #{brxxId}
+  </delete>
+
+  <insert id="insertPatient" useGeneratedKeys="true" keyProperty="brxxId" keyColumn="brxx_id">
+    INSERT INTO bgxt_brxx (brxx_id, brxx_tmh, brbh, brxm, brxb, brnl, nllx, brlb, syh, syqk, ksdm, brch,
+    bbzl, lczd, jyys, shys, jyrq, ybzt, sb_djid)
+    VALUES (#{brxxId}, #{brxxTmh}, #{brbh}, #{brxm}, #{brxb}, #{brnl}, #{nllx}, #{brlb}, #{syh}, #{syqk}, #{ksdm}, #{brch},
+    #{bbzl}, #{lczd}, #{jyys}, #{shys}, NOW(), 0, #{sbDjid})
+  </insert>
+
+  <select id="selectPatientIdsByFilter" resultType="java.lang.Integer">
+    SELECT DISTINCT b.brxx_id FROM bgxt_brxx b WHERE 1=1
+    AND DATE(b.jyrq) = DATE(#{date})
+    <if test="sampleNo != null and sampleNo != ''">
+    AND b.syh LIKE CONCAT('%',#{sampleNo},'%')
+    </if>
+    <if test="name != null and name != ''">
+    AND b.brxm LIKE CONCAT('%',#{name},'%')
+    </if>
+    <if test="barcode != null and barcode != ''">
+    AND b.brxx_tmh LIKE CONCAT('%',#{barcode},'%')
+    </if>
+  </select>
+
+  <select id="selectPatientListByIds" resultType="java.util.Map">
+    SELECT
+    b.brxx_id AS id,
+    b.brxx_tmh AS barcode,
+    b.brbh AS patientId,
+    b.brxm AS name,
+    b.brxb AS sexCode,
+    CASE b.brxb WHEN 1 THEN '男' WHEN 2 THEN '女' ELSE '' END AS sex,
+    b.brnl AS age,
+    b.nllx AS ageUnit,
+    b.brlb AS category,
+    b.syqk AS urgency,
+    b.ksdm AS dept,
+    b.ksdm AS ward,
+    b.brch AS bedNo,
+    b.syh AS sampleNo,
+    CASE b.bbzl
+    WHEN 1 THEN '血清'
+    WHEN 2 THEN '血浆'
+    WHEN 3 THEN '尿液'
+    WHEN 4 THEN '粪便'
+    WHEN 5 THEN '脑脊液'
+    WHEN 6 THEN '胸腹水'
+    WHEN 7 THEN '其它'
+    ELSE CAST(b.bbzl AS CHAR) END AS sampleType,
+    b.bbzl AS sampleTypeCode,
+    b.ybzt AS status,
+    DATE_FORMAT(b.jyrq, '%Y-%m-%d %H:%i') AS applicationTime,
+    DATE_FORMAT(b.jyrq, '%Y-%m-%d %H:%i') AS submitDate,
+    DATE_FORMAT(b.srrq, '%Y-%m-%d %H:%i') AS samplingTime,
+    DATE_FORMAT(b.jyrq, '%Y-%m-%d %H:%i') AS verificationTime,
+    b.czy AS entryPerson,
+    DATE_FORMAT(b.jyrq, '%Y-%m-%d %H:%i') AS inspectionTime,
+    b.jyys AS inspectDoctor,
+    b.jyys AS inspectingPhysician,
+    DATE_FORMAT(b.shrq, '%Y-%m-%d %H:%i') AS reviewTime,
+    b.shys AS auditDoctor,
+    b.shys AS reviewingPhysician,
+    b.sjys AS doctor,
+    b.lczd AS diagnosis,
+    b.bz AS remarks,
+    b.bz2 AS additionalRemarks,
+    b.tjdw AS physicalExamUnit,
+    b.zjhm AS idNumber,
+    b.lxfs AS contactInfo,
+    b.bbxt AS sampleMorphology,
+    b.czy AS entryPerson,
+    b.dycs AS printCount,
+    DATE_FORMAT(b.bgrq, '%Y-%m-%d %H:%i') AS printTime
+    FROM bgxt_brxx b
+    WHERE b.brxx_id IN
+    <foreach collection='ids' item='id' open='(' separator=',' close=')'>
+    #{id}
+    </foreach>
+    ORDER BY b.syh
+  </select>
+
+  <select id="searchSamples" resultType="java.util.Map">
+    SELECT
+    brxx_id AS id,
+    brxx_tmh AS barcode,
+    brbh AS patientId,
+    brxm AS name,
+    CASE brxb WHEN 1 THEN '男' WHEN 2 THEN '女' ELSE '' END AS sex,
+    brnl AS age,
+    ksdm AS ward,
+    brch AS bedNo,
+    syh AS sampleNo,
+    ybzt AS status
+    FROM bgxt_brxx WHERE 1=1
+    <if test="date != null and date != ''">
+    AND DATE(jyrq) = DATE(#{date})
+    </if>
+    <if test="date == null or date == ''">
+    AND jyrq >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    </if>
+    <if test="sampleNo != null and sampleNo != ''">
+    AND syh LIKE CONCAT('%',#{sampleNo},'%')
+    </if>
+    <if test="name != null and name != ''">
+    AND brxm LIKE CONCAT('%',#{name},'%')
+    </if>
+    <if test="barcode != null and barcode != ''">
+    AND brxx_tmh LIKE CONCAT('%',#{barcode},'%')
+    </if>
+    <if test="patientId != null and patientId != ''">
+    AND brbh LIKE CONCAT('%',#{patientId},'%')
+    </if>
+    ORDER BY jyrq DESC, syh DESC
+  </select>
+
+  <select id="selectProgressStats" resultType="java.util.Map">
+    SELECT
+    SUM(CASE WHEN ybzt = 0 OR ybzt IS NULL THEN 1 ELSE 0 END) AS statusEntry,
+    SUM(CASE WHEN ybzt = 1 THEN 1 ELSE 0 END) AS statusInspected,
+    SUM(CASE WHEN ybzt = 2 THEN 1 ELSE 0 END) AS statusAudited,
+    SUM(CASE WHEN ybzt = 3 THEN 1 ELSE 0 END) AS statusPrinted,
+    SUM(CASE WHEN sfbz = 1 THEN 1 ELSE 0 END) AS statusInvalid,
+    COUNT(*) AS total
+    FROM bgxt_brxx WHERE DATE(jyrq) = DATE(#{date})
+  </select>
+
+  <select id="selectSampleIssues" resultType="java.util.Map">
+    SELECT brxx_id AS id, syh AS sampleNo, brxm AS name, brxb AS sex,
+    brnl AS age, nllx AS ageUnit, bbzl AS sampleType, ybzt AS status,
+    sfbz AS isInvalid, bz AS remarks, jyrq AS testDate
+    FROM bgxt_brxx
+    WHERE DATE(jyrq) = DATE(#{date})
+    AND (sfbz = 1 OR LENGTH(IFNULL(bz, '')) > 0)
+    ORDER BY jyrq DESC
+  </select>
+
+  <select id="selectIdBySyhAndSbdjid" resultType="java.lang.Integer">
+    SELECT brxx_id FROM bgxt_brxx WHERE syh = #{syh} AND sb_djid = #{sbDjid} AND ybzt IN (0, 1, 4) LIMIT 1
+  </select>
+
+  <update id="updateYcztById">
+    UPDATE bgxt_brxx SET yczt = #{yczt} WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updateReportIncorrect">
+    UPDATE bgxt_brxx SET yczt = 99, bz = CONCAT(COALESCE(bz,''), ' [报告不正确:', #{reason}, ']') WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updatePatientById">
+    UPDATE bgxt_brxx SET brxx_tmh=#{brxxTmh}, brbh=#{brbh}, brxm=#{brxm}, brxb=#{brxb}, brnl=#{brnl},
+    nllx=#{nllx}, brlb=#{brlb}, syh=#{syh}, syqk=#{syqk}, ksdm=#{ksdm}, brch=#{brch},
+    bbzl=#{bbzl}, lczd=#{lczd}, sb_djid=#{sbDjid} WHERE brxx_id=#{brxxId}
+  </update>
+
+  <insert id="insertBrxxLog">
+    INSERT INTO bgxt_brxx_log (brxx_tmh, brbh, brxm, brxb, brnl, nllx, brlb, syqk, ksdm, brch, syh, bbzl, ybzt, jyrq, sfbz, bz, qxshczy, qxshrq)
+    SELECT brxx_tmh, brbh, brxm, brxb, brnl, nllx, brlb, syqk, ksdm, brch, syh, bbzl, ybzt, jyrq, sfbz, bz, #{czydm}, NOW()
+    FROM bgxt_brxx WHERE brxx_id = #{brxxId}
+  </insert>
+
+  <select id="selectRefreshList" resultType="java.util.Map">
+    SELECT b.brxx_id, b.brxm, b.brxb, b.brnl, b.brlb, b.syqk, b.syh, b.ybzt,
+    b.jyrq, b.shrq, b.brxx_tmh, b.brch, b.ksdm, b.bbzl, b.yczt, b.sfbz,
+    s.sbmc, k.ksmc
+    FROM bgxt_brxx b
+    LEFT JOIN sys_sbdjb s ON b.sb_djid = s.sb_djid
+    LEFT JOIN sys_kssz k ON b.ksdm = k.ksdm WHERE 1=1
+    <if test="sbDjid != null">
+     AND b.sb_djid = #{sbDjid}
+    </if>
+    <if test="date != null">
+     AND DATE(b.jyrq) = #{date}
+    </if>
+    <if test="brlb != null">
+     AND b.brlb = #{brlb}
+    </if>
+    ORDER BY b.syh DESC LIMIT 500
+  </select>
+
+  <select id="selectSampleList" resultType="java.util.Map">
+    SELECT b.brxx_id AS id, b.brxx_tmh AS barcode, b.jyrq AS receiveTime,
+    b.brxm AS patientName,
+    CASE b.brxb WHEN 1 THEN '男' WHEN 2 THEN '女' ELSE '' END AS sex,
+    b.brnl AS age, b.ksdm AS department, IFNULL(b.brch, '') AS bedNo,
+    CASE b.brlb WHEN 1 THEN '门诊' WHEN 2 THEN '住院' WHEN 3 THEN '体检' WHEN 4 THEN '其他' WHEN 5 THEN '科研' ELSE '' END AS patientCategory,
+    '' AS workGroup, '' AS receiver
+    FROM bgxt_brxx b
+    WHERE 1=1
+    <if test="startDate != null and startDate != ''">
+     AND DATE(b.jyrq) &gt;= DATE(#{startDate})
+    </if>
+    <if test="endDate != null and endDate != ''">
+     AND DATE(b.jyrq) &lt;= DATE(#{endDate})
+    </if>
+    <if test="patientType != null and patientType != ''">
+     AND CASE #{patientType} WHEN '门诊病人' THEN b.brlb=1 WHEN '住院病人' THEN b.brlb=2 WHEN '体检人员' THEN b.brlb=3 WHEN '其他病人' THEN b.brlb=4 WHEN '科研人员' THEN b.brlb=5 END
+    </if>
+    <if test="department != null and department != ''">
+     AND b.ksdm = #{department}
+    </if>
+    ORDER BY b.jyrq DESC LIMIT #{limit} OFFSET #{offset}
+  </select>
+
+  <select id="countSampleList" resultType="java.lang.Integer">
+    SELECT COUNT(*) FROM bgxt_brxx b WHERE 1=1
+    <if test="startDate != null and startDate != ''">
+     AND DATE(b.jyrq) &gt;= DATE(#{startDate})
+    </if>
+    <if test="endDate != null and endDate != ''">
+     AND DATE(b.jyrq) &lt;= DATE(#{endDate})
+    </if>
+    <if test="patientType != null and patientType != ''">
+     AND CASE #{patientType} WHEN '门诊病人' THEN b.brlb=1 WHEN '住院病人' THEN b.brlb=2 WHEN '体检人员' THEN b.brlb=3 WHEN '其他病人' THEN b.brlb=4 WHEN '科研人员' THEN b.brlb=5 END
+    </if>
+    <if test="department != null and department != ''">
+     AND b.ksdm = #{department}
+    </if>
+  </select>
+
+  <select id="selectStatsByPatientType" resultType="java.util.Map">
+    SELECT CASE COALESCE(brlb,0) WHEN 1 THEN '门诊' WHEN 2 THEN '住院' WHEN 3 THEN '体检' WHEN 4 THEN '其他' WHEN 5 THEN '科研' WHEN 0 THEN '未知' ELSE CONCAT('其他(', COALESCE(brlb,0), ')') END AS name, COALESCE(brlb,0) AS brlb, COUNT(*) AS cnt FROM bgxt_brxx GROUP BY brlb ORDER BY cnt DESC
+  </select>
+
+  <select id="selectStatsByStatus" resultType="java.util.Map">
+    SELECT CASE ybzt WHEN 0 THEN '登记' WHEN 1 THEN '未审核' WHEN 2 THEN '已审核' WHEN 3 THEN '已打印' WHEN 4 THEN '已检验' WHEN 5 THEN '初审' WHEN 6 THEN '复审' WHEN -1 THEN '已作废' ELSE CONCAT('未知(', ybzt, ')') END AS statusName, ybzt, COUNT(*) as cnt FROM bgxt_brxx GROUP BY ybzt ORDER BY ybzt
+  </select>
+
+  <select id="selectStatsByDate" resultType="java.util.Map">
+    SELECT DATE(jyrq) as stat_date, COUNT(*) as cnt FROM bgxt_brxx
+    WHERE jyrq >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+    GROUP BY DATE(jyrq) ORDER BY stat_date
+  </select>
+
+  <select id="selectExaminers" resultType="java.util.Map">
+    SELECT DISTINCT jyys AS doctorCode, jyys AS doctorName FROM bgxt_brxx WHERE jyys IS NOT NULL AND jyys != '' ORDER BY jyys
+  </select>
+
+  <select id="selectAuditors" resultType="java.util.Map">
+    SELECT DISTINCT shys AS doctorCode, shys AS doctorName FROM bgxt_brxx WHERE shys IS NOT NULL AND shys != '' ORDER BY shys
+  </select>
+
+<select id="selectReportList" resultType="java.util.Map">
+    SELECT b.brxx_id, b.brxm, b.brxb, b.brnl, b.brlb, b.syh, b.ybzt,
+    b.brxx_tmh, b.ksdm, b.jyrq
+    FROM bgxt_brxx b WHERE 1=1
+    <if test="brxm != null and brxm != ''">
+     AND b.brxm LIKE CONCAT('%', #{brxm}, '%')
+    </if>
+    <if test="brxxTmh != null and brxxTmh != ''">
+     AND b.brxx_tmh = #{brxxTmh}
+    </if>
+    <if test="syh != null and syh != ''">
+     AND b.syh = #{syh}
+    </if>
+    <if test="ksdm != null and ksdm != ''">
+     AND b.ksdm = #{ksdm}
+    </if>
+    <if test="brlb != null">
+     AND b.brlb = #{brlb}
+    </if>
+    <if test="ybztList != null and ybztList.size() > 0">
+     AND b.ybzt IN <foreach collection="ybztList" item="y" open="(" separator="," close=")">#{y}</foreach>
+    </if>
+    <if test="sbDjid != null">
+     AND b.sb_djid = #{sbDjid}
+    </if>
+    <if test="beginDate != null and beginDate != ''">
+     AND b.jyrq &gt;= #{beginDate}
+    </if>
+    <if test="endDate != null and endDate != ''">
+     AND b.jyrq &lt;= CONCAT(#{endDate}, ' 23:59:59')
+    </if>
+    ORDER BY b.syh DESC LIMIT 500
+  </select>
+
+  <select id="selectBatchPrintList" resultType="java.util.Map">
+    SELECT DISTINCT b.brxx_id, b.brxm, b.brxb, b.brnl, b.brlb, b.syh, b.ybzt, b.jyrq,
+    b.brxx_tmh, b.ksdm, b.bbzl, b.shrq, s.sbmc, k.ksmc, b.bgbh, b.bgmc
+    FROM bgxt_brxx b
+    LEFT JOIN sys_sbdjb s ON b.sb_djid = s.sb_djid
+    LEFT JOIN sys_kssz k ON b.ksdm = k.ksdm
+    WHERE b.ybzt >= 0
+    <if test="beginDate != null and beginDate != ''">
+     AND COALESCE(b.shrq, b.jyrq) &gt;= #{beginDate}
+    </if>
+     <if test="endDate != null and endDate != ''">
+      AND COALESCE(b.shrq, b.jyrq) &lt;= CONCAT(#{endDate}, ' 23:59:59')
+     </if>
+    <if test="brlb != null">
+     AND b.brlb = #{brlb}
+    </if>
+    <if test="ksdm != null and ksdm != ''">
+     AND b.ksdm = #{ksdm}
+    </if>
+    <if test="sbDjid != null">
+     AND b.sb_djid = #{sbDjid}
+    </if>
+    ORDER BY b.syh
+  </select>
+
+  <select id="selectAllForCleanup" resultType="java.util.Map">
+    SELECT brxx_id, syh AS syh_group, syh FROM bgxt_brxx ORDER BY brxx_id DESC
+  </select>
+
+  <select id="selectLabelDataById" resultType="java.util.Map">
+    SELECT b.brxx_tmh, b.brxm, b.brxb, b.brnl, b.ksdm, k.ksmc, b.brch, b.syh, b.bbzl, b.syqk,
+    b.jyrq FROM bgxt_brxx b
+    LEFT JOIN sys_kssz k ON b.ksdm = k.ksdm WHERE b.brxx_id = #{brxxId} LIMIT 1
+  </select>
+
+  <select id="selectMaxBarcodeSeq" resultType="java.lang.Integer">
+    SELECT IFNULL(MAX(CAST(SUBSTRING(brxx_tmh, LENGTH(#{prefix}) + 1) AS UNSIGNED)), 0)
+    FROM bgxt_brxx WHERE brxx_tmh LIKE CONCAT(#{prefix}, '%')
+  </select>
+
+  <delete id="deleteDuplicateByName">
+    DELETE FROM bgxt_brxx WHERE brxm = #{brxm} AND brxx_id NOT IN (SELECT MAX(brxx_id) FROM bgxt_brxx WHERE brxm = #{brxm})
+  </delete>
+
+  <delete id="deleteGarbledNames">
+    DELETE FROM bgxt_brxx WHERE brxm LIKE '%' || CHAR(0xEF) || '%' OR brxm LIKE '%' || CHAR(0xBF) || '%' OR brxm = '' OR brxm IS NULL
+  </delete>
+
+  <delete id="deleteDuplicateRecords">
+    DELETE FROM bgxt_brxx WHERE brxm = #{brxm} AND brxb = #{brxb} AND brnl = #{brnl} AND brlb = #{brlb} AND jyrq = #{jyrq} AND brxx_id NOT IN (SELECT MAX(brxx_id) FROM bgxt_brxx WHERE brxm = #{brxm} AND brxb = #{brxb} AND brnl = #{brnl} AND brlb = #{brlb} AND jyrq = #{jyrq})
+  </delete>
+
+  <update id="updateStatusWithAudit">
+    UPDATE bgxt_brxx SET ybzt = 2, shys = #{shys}, shrq = NOW() WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updateStatusWithPrint">
+    UPDATE bgxt_brxx SET ybzt = 3, dybz = 1, dycs = COALESCE(dycs, 0) + 1, bgrq = NOW() WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updateStatusWithInspect">
+    UPDATE bgxt_brxx SET ybzt = 4, jyys = #{jyys} WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updateStatusWithFirstCheck">
+    UPDATE bgxt_brxx SET ybzt = 5 WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updateStatusWithIntermediateCheck">
+    UPDATE bgxt_brxx SET ybzt = 6 WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="undoAudit">
+    UPDATE bgxt_brxx SET ybzt = 1, shys = NULL, shrq = NULL WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="undoInspect">
+    UPDATE bgxt_brxx SET ybzt = 1, jyys = NULL WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="undoFirstCheck">
+    UPDATE bgxt_brxx SET ybzt = 1 WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="undoIntermediateCheck">
+    UPDATE bgxt_brxx SET ybzt = 5 WHERE brxx_id = #{brxxId}
+  </update>
+
+  <update id="updateBillingStatus">
+    UPDATE bgxt_brxx SET sfbz = #{sfbz} WHERE brxx_id = #{brxxId}
+  </update>
+
+  <select id="listBillingSamples" resultType="java.util.Map">
+    SELECT
+    b.brxx_id AS id,
+    b.brxx_tmh AS barcode,
+    b.brbh AS patientId,
+    b.brxm AS name,
+    CASE b.brxb WHEN 1 THEN '男' WHEN 2 THEN '女' ELSE '' END AS sex,
+    b.brnl AS age,
+    b.ksdm AS ward,
+    b.brch AS bedNo,
+    b.syh AS sampleNo,
+    b.ybzt AS status,
+    b.sfbz AS billingStatus,
+    b.jyrq AS inspectionDate
+    FROM bgxt_brxx b WHERE 1=1
+    <if test="syh != null and syh != ''">
+    AND b.syh LIKE CONCAT('%',#{syh},'%')
+    </if>
+    <if test="brxm != null and brxm != ''">
+    AND b.brxm LIKE CONCAT('%',#{brxm},'%')
+    </if>
+    <if test="brxxTmh != null and brxxTmh != ''">
+    AND b.brxx_tmh LIKE CONCAT('%',#{brxxTmh},'%')
+    </if>
+    <if test="jyrq != null and jyrq != ''">
+    AND DATE(b.jyrq) = DATE(#{jyrq})
+    </if>
+    ORDER BY b.jyrq DESC, b.syh DESC
+    LIMIT 500
+  </select>
+
+  <update id="updateSampleTime">
+    UPDATE bgxt_brxx
+    SET jyrq = COALESCE(#{jyrq}, jyrq),
+        shrq = COALESCE(#{shrq}, shrq)
+    WHERE brxx_id = #{brxxId}
+  </update>
+
+  <select id="selectRawDataByBrxxId" resultType="java.util.Map">
+    SELECT m.id, m.cjid, m.xmid, m.jyjg AS rawResult, m.mgd, m.od, z.cjrq,
+           z.syh, z.sb_djid, z.hb_sb_djid
+    FROM sys_cjysz_mx m
+    JOIN sys_cjysz_zb z ON m.cjid = z.cjid
+    WHERE z.syh = (SELECT syh FROM bgxt_brxx WHERE brxx_id = #{brxxId})
+    AND z.sb_djid = (SELECT sb_djid FROM bgxt_brxx WHERE brxx_id = #{brxxId})
+    ORDER BY m.id DESC
+  </select>
+
+  <update id="updateTransferInfo">
+    UPDATE bgxt_brxx
+    SET jyrq = #{targetDate},
+        sb_djid = #{targetInstrument},
+        syh = #{targetSyh},
+        bz = CONCAT(COALESCE(bz, ''), ' [样本转移:', #{startNo}, '->', #{targetSyh}, ']')
+    WHERE brxx_id = #{brxxId}
+  </update>
+
+  <select id="selectByBarcode" resultType="java.util.Map">
+    SELECT brxx_id, brxx_tmh, brxm, brxb, brnl, brlb, syh, ybzt, sb_djid
+    FROM bgxt_brxx WHERE brxx_tmh = #{barcode} LIMIT 1
+  </select>
+
+  <update id="acceptByBarcode">
+    UPDATE bgxt_brxx SET ybzt = 1, jyrq = NOW() WHERE brxx_tmh = #{barcode} AND ybzt IN (0, 5, 6)
+  </update>
+
+  <insert id="insertToQc">
+    INSERT INTO zk_nyzkjg (zkpid, zkxmid, yssj, yhsj, syrq, sybz, skbz)
+    SELECT NULL, xmid, jyjg, jyjg, NOW(), 1, 0
+    FROM bgxt_jyjg WHERE brxx_id = #{brxxId}
+  </insert>
+
+  <select id="selectPatient360View" resultType="java.util.Map">
+    SELECT b.brxx_id, b.brxx_tmh, b.brbh, b.brxm, b.brxb, b.brnl, b.nllx, b.brlb,
+           b.syqk, b.ksdm, b.brch, b.syh, b.bbzl, b.ybzt, b.jyrq, b.shrq,
+           b.lczd, b.jyys, b.shys, b.sb_djid, b.bgbh, b.bgmc,
+           k.ksmc
+    FROM bgxt_brxx b
+    LEFT JOIN sys_kssz k ON b.ksdm = k.ksdm
+    WHERE b.brxx_id = #{brxxId}
+  </select>
+
+<select id="selectProcessRateStats" resultType="java.util.Map">
+    SELECT
+      SUM(CASE WHEN ybzt = 0 OR ybzt = 1 THEN 1 ELSE 0 END) AS pending,
+      SUM(CASE WHEN ybzt = 2 THEN 1 ELSE 0 END) AS audited,
+      SUM(CASE WHEN ybzt = 3 THEN 1 ELSE 0 END) AS printed
+    FROM bgxt_brxx WHERE DATE(jyrq) = DATE(#{date})
+  </select>
+
+  <select id="selectBatchPrintListWithFilters" resultType="java.util.Map">
+    SELECT DISTINCT b.brxx_id, b.brxm, b.brxb, b.brnl, b.brlb, b.syh, b.ybzt, b.jyrq,
+    b.brxx_tmh, b.ksdm, b.bbzl, b.shrq, s.sbmc, k.ksmc, b.bgbh, b.bgmc,
+    b.brch, b.brbh, b.lczd
+    FROM bgxt_brxx b
+    LEFT JOIN sys_sbdjb s ON b.sb_djid = s.sb_djid
+    LEFT JOIN sys_kssz k ON b.ksdm = k.ksdm
+    WHERE b.ybzt >= 0
+    <if test="beginDate != null and beginDate != ''">
+     AND COALESCE(b.shrq, b.jyrq) &gt;= #{beginDate}
+    </if>
+     <if test="endDate != null and endDate != ''">
+      AND COALESCE(b.shrq, b.jyrq) &lt;= CONCAT(#{endDate}, ' 23:59:59')
+     </if>
+    <if test="brlb != null">
+     AND b.brlb = #{brlb}
+    </if>
+    <if test="ksdm != null and ksdm != ''">
+     AND b.ksdm = #{ksdm}
+    </if>
+    <if test="tjdw != null and tjdw != ''">
+     AND b.ksdm = #{tjdw}
+    </if>
+    <if test="sbDjid != null">
+     AND b.sb_djid = #{sbDjid}
+    </if>
+    ORDER BY b.syh
+  </select>
+
+</mapper>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtJgdybMapper">
+
+  <insert id="insertPrintLog">
+    INSERT INTO bgxt_jgdyb (brxx_id, czydm, dyrq, zd, ip) VALUES (#{brxxId}, #{czydm}, NOW(), #{zd}, #{ip})
+  </insert>
+
+</mapper>

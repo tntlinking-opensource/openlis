@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.ZkNyzkxmMapper">
+
+    <select id="findProjects" resultType="map">
+        SELECT x.zkxmid, x.zkpid, CAST(x.xmid AS UNSIGNED) AS xmid, x.bz, x.bzc, x.zkdz, x.zkgz, x.dx_lx, z.zkpmc
+        FROM zk_nyzkxm x
+        LEFT JOIN sys_zkpd z ON x.zkpid = z.zkpid
+        WHERE 1=1
+        <if test="zkpid != null and zkpid > 0">AND x.zkpid = #{zkpid}</if>
+        ORDER BY x.zkxmid
+    </select>
+
+    <select id="findXmidByZkxmid" resultType="map">
+        SELECT xmid FROM zk_nyzkxm WHERE zkxmid = #{zkxmid}
+    </select>
+
+    <select id="findRuleByZkxmid" resultType="map">
+        SELECT bz, bzc, zkdz, zkgz, dx_lx FROM zk_nyzkxm WHERE zkxmid = #{zkxmid}
+    </select>
+
+    <insert id="insertProject">
+        INSERT INTO zk_nyzkxm (zkpid, xmid, bz, bzc, zkdz, zkgz, dx_lx, fhbz)
+        VALUES (#{zkpid}, #{xmid}, #{bz}, #{bzc}, #{zkdz}, #{zkgz}, #{dxLx}, #{fhbz})
+    </insert>
+
+    <update id="updateProject">
+        UPDATE zk_nyzkxm
+        SET bz=#{bz}, bzc=#{bzc}, zkdz=#{zkdz}, zkgz=#{zkgz}, dx_lx=#{dxLx}, fhbz=#{fhbz}, bc=#{bc}
+        WHERE zkxmid=#{zkxmid}
+    </update>
+
+    <select id="findByZkpid" resultType="map">
+        SELECT x.zkxmid, x.zkpid, x.xmid, x.bz, x.bzc, j.xmzwmc, x.fhbz as zknd
+        FROM zk_nyzkxm x
+        LEFT JOIN sys_jyxm_full j ON CAST(x.xmid AS UNSIGNED) = j.xmid
+        WHERE x.zkpid = #{zkpid}
+        ORDER BY x.zkxmid
+    </select>
+
+    <delete id="deleteProject">
+        DELETE FROM zk_nyzkxm WHERE zkxmid = #{zkxmid}
+    </delete>
+
+</mapper>

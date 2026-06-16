@@ -1,9 +1,12 @@
 package com.lis.controller;
 
+import com.lis.annotation.OperationLog;
 import com.lis.service.SystemLockService;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -15,6 +18,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping({"/system/lock", "/lock"})
+@Slf4j
 public class SystemLockController {
     
     @Autowired
@@ -24,6 +28,7 @@ public class SystemLockController {
      * 锁定系统
      */
     @PostMapping("/lock")
+    @OperationLog(value = "锁定系统", module = "系统设置")
     public ResponseEntity<ApiResponse> lockSystem(@RequestBody LockRequest request) {
         boolean success = systemLockService.lockSystem(request.getUsername(), request.getPassword());
         if (success) {
@@ -37,6 +42,7 @@ public class SystemLockController {
      * 解锁系统
      */
     @PostMapping("/unlock")
+    @OperationLog(value = "解锁系统", module = "系统设置")
     public ResponseEntity<ApiResponse> unlockSystem(@RequestBody LockRequest request) {
         boolean success = systemLockService.unlockSystem(request.getUsername(), request.getPassword());
         if (success) {

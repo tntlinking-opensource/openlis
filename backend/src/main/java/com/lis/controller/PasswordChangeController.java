@@ -1,10 +1,13 @@
 package com.lis.controller;
 
+import com.lis.annotation.OperationLog;
 import com.lis.entity.SysCzydm;
 import com.lis.mapper.SysCzydmMapper;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/system/password")
+@Slf4j
 public class PasswordChangeController {
     
     @Autowired
@@ -21,6 +25,7 @@ public class PasswordChangeController {
      * 修改密码
      */
     @PostMapping("/change")
+    @OperationLog(value = "修改密码", module = "系统设置")
     public ResponseEntity<ApiResponse> changePassword(@RequestBody ChangePasswordRequest request) {
         try {
             // 获取用户信息
@@ -45,7 +50,7 @@ public class PasswordChangeController {
             
             return ResponseEntity.ok(ApiResponse.success("密码修改成功"));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("操作失败", e);
             return ResponseEntity.ok(ApiResponse.fail("密码修改失败：" + e.getMessage()));
         }
     }

@@ -14,89 +14,97 @@
     <div class="menu-bar">
       <el-menu mode="horizontal" class="main-menu" :default-active="activeMenu">
         <!-- 样本管理[Y]：下拉菜单结构对齐旧系统（2.1~2.9），当前阶段仅实现“样本录入” -->
-        <el-sub-menu index="sample">
+        <el-sub-menu :disabled="!hasAnyMenu('sample_entry','report_print','report_review','report_cancel_audit')" index="sample">
           <template #title>样本管理[Y]</template>
-          <el-menu-item index="sample-entry" @click="openSampleManagement">样本录入</el-menu-item>
-          <el-menu-item index="sample-date" @click="handleSelectDateMenu">日期选择</el-menu-item>
-          <el-menu-item index="sample-batch-print" disabled>批量打印中心</el-menu-item>
-          <el-menu-item index="sample-sep-1" class="menu-sep" disabled />
-          <el-menu-item index="sample-reload" disabled>重新提取病人信息</el-menu-item>
-          <el-menu-item index="sample-new" @click="handleNew">新增样本</el-menu-item>
-          <el-menu-item index="sample-save" @click="handleSave">保存样本</el-menu-item>
-          <el-menu-item index="sample-audit" @click="handleAudit">审核样本</el-menu-item>
-          <el-menu-item index="sample-cancel-audit" disabled>取消审核</el-menu-item>
-          <el-menu-item index="sample-print" @click="handlePrint">打印报告</el-menu-item>
-          <el-menu-item index="sample-modify-audit" disabled>修改审核</el-menu-item>
+          <el-menu-item v-if="hasMenu('sample_entry')" index="sample-entry" @click="openSampleManagement">样本录入</el-menu-item>
+          <el-menu-item v-if="hasMenu('sample_entry')" index="sample-date" @click="handleSelectDateMenu">日期选择</el-menu-item>
+          <el-menu-item v-if="hasMenu('report_print')" index="sample-batch-print" @click="openDialog('batchPrint')">批量打印中心</el-menu-item>
+          <el-menu-item v-if="hasMenu('sample_entry')" index="sample-sep-1" class="menu-sep" disabled />
+          <el-menu-item v-if="hasMenu('sample_entry')" index="sample-reload" disabled>重新提取病人信息</el-menu-item>
+          <el-menu-item v-if="hasMenu('sample_entry')" index="sample-new" @click="handleNew">新增样本</el-menu-item>
+          <el-menu-item v-if="hasMenu('sample_entry')" index="sample-save" @click="handleSave">保存样本</el-menu-item>
+          <el-menu-item v-if="hasMenu('report_review')" index="sample-audit" @click="handleAudit">审核样本</el-menu-item>
+          <el-menu-item v-if="hasMenu('report_cancel_audit')" index="sample-cancel-audit" @click="handleCancelAudit">取消审核</el-menu-item>
+          <el-menu-item v-if="hasMenu('report_print')" index="sample-print" @click="handlePrint">打印报告</el-menu-item>
+          <el-menu-item v-if="hasMenu('report_cancel_audit')" index="sample-modify-audit" @click="handleModifyAudit">修改审核</el-menu-item>
         </el-sub-menu>
         
         <!-- 质控[Z] -->
-        <el-sub-menu index="qc">
+        <el-sub-menu :disabled="!hasAnyMenu('qc_management','qc_data','qc_evaluation')" index="qc">
           <template #title>质控[Z]</template>
-          <el-menu-item index="qc-setup" @click="openQcManagement">质控设置</el-menu-item>
-          <el-menu-item index="qc-entry" @click="openQcDaily">质控录入</el-menu-item>
-          <el-menu-item index="qc-analysis" @click="openQcAnalysis">质控分析</el-menu-item>
-          <el-menu-item index="qc-evaluation" disabled>质控评价</el-menu-item>
+          <el-menu-item v-if="hasMenu('qc_management')" index="qc-setup" @click="openQcManagement">质控设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('qc_data')" index="qc-entry" @click="openQcDaily">质控录入</el-menu-item>
+          <el-menu-item v-if="hasMenu('qc_data')" index="qc-analysis" @click="openQcAnalysis">质控分析</el-menu-item>
+          <el-menu-item v-if="hasMenu('qc_evaluation')" index="qc-evaluation" @click="openQcEvaluation">质控评价</el-menu-item>
         </el-sub-menu>
         
         <!-- 仪器[M] - 选择检验仪器 -->
-        <el-menu-item index="instrument" @click="openInstrumentSelection">
+        <el-menu-item :disabled="!hasMenu('instrument_select')" index="instrument" @click="openInstrumentSelection">
           <span>仪器[M]</span>
         </el-menu-item>
         
-        <!-- 查询统计[T] - 启用 -->
-        <el-menu-item index="query" @click="openQueryStatistics">
-          <span>查询统计[T]</span>
-        </el-menu-item>
+        <!-- 查询统计[T] - 完整子菜单 -->
+        <el-sub-menu :disabled="!hasAnyMenu('query_stat','query_report','query_critical','query_custom','query_tat','query_detail','query_log')" index="query">
+          <template #title>查询统计[T]</template>
+          <el-menu-item v-if="hasMenu('query_report')" index="query-report" @click="openDialog('reportQuery')">报告查询</el-menu-item>
+          <el-menu-item v-if="hasMenu('query_detail')" index="query-detail" @click="openQueryStatistics">查询统计</el-menu-item>
+          <el-menu-item v-if="hasMenu('query_stat')" index="query-stat" @click="openDialog('statistics')">综合统计</el-menu-item>
+          <el-menu-item v-if="hasMenu('query_critical')" index="query-critical" @click="openDialog('criticalValue')">危急值查询</el-menu-item>
+          <el-menu-item v-if="hasMenu('query_custom')" index="query-custom" @click="openDialog('customReport')">自定义报表</el-menu-item>
+          <el-menu-item v-if="hasMenu('query_tat')" index="query-tat" @click="openDialog('tatSetting')">TAT统计</el-menu-item>
+          <el-menu-item v-if="hasMenu('query_log')" index="query-log" @click="openDialog('systemLog')">系统日志</el-menu-item>
+        </el-sub-menu>
         
         <!-- 系统设置[S] - 完整功能（结构对齐旧系统） -->
-        <el-sub-menu index="system">
+        <el-sub-menu :disabled="!hasAnyMenu('system_engineer','system_lock','system_password','system_common_code','system_special','system_process','system_permission')" index="system">
           <template #title>系统设置[S]</template>
-          <!-- 顺序/分组严格按旧系统截图：1 / 4 / 2 -->
-          <el-menu-item index="system-engineer" @click="openDialog('engineer')">工程师系统设置</el-menu-item>
-          <el-menu-item index="system-sep-1" class="menu-sep" disabled />
+          <el-menu-item v-if="hasMenu('system_engineer')" index="system-engineer" @click="openDialog('engineer')">工程师系统设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('system_engineer')" index="system-sep-1" class="menu-sep" disabled />
 
-          <el-menu-item index="system-lock" @click="openDialog('lock')">系统锁定  Ctrl+K</el-menu-item>
-          <el-menu-item index="system-password" @click="openDialog('passwordChange')">密码修改</el-menu-item>
-          <el-menu-item index="system-common-code" @click="openDialog('commonCode')">通用编码设置</el-menu-item>
-          <el-menu-item index="system-special-report" @click="openDialog('specialReport')">特殊报告设置</el-menu-item>
-          <el-menu-item index="system-sep-2" class="menu-sep" disabled />
+          <el-menu-item v-if="hasMenu('system_lock')" index="system-lock" @click="openDialog('lock')">系统锁定  Ctrl+K</el-menu-item>
+          <el-menu-item v-if="hasMenu('system_password')" index="system-password" @click="openDialog('passwordChange')">密码修改</el-menu-item>
+          <el-menu-item v-if="hasMenu('system_common_code')" index="system-common-code" @click="openDialog('commonCode')">通用编码设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('system_special')" index="system-special-report" @click="openDialog('specialReport')">特殊报告设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('system_engineer')" index="system-sep-2" class="menu-sep" disabled />
 
-          <el-menu-item index="system-process" @click="openDialog('process')">流程控制设置</el-menu-item>
-          <el-menu-item index="system-permission" @click="openDialog('permission')">刷新权限</el-menu-item>
+          <el-menu-item v-if="hasMenu('system_process')" index="system-process" @click="openDialog('process')">流程控制设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('system_permission')" index="system-permission" @click="openDialog('permission')">刷新权限</el-menu-item>
         </el-sub-menu>
         
         <!-- 基本设置[J] - 下拉长列表结构对齐旧系统 -->
-        <el-sub-menu index="basic">
+        <el-sub-menu :disabled="!hasAnyMenu('basic_dept','basic_staff','basic_workgroup','basic_instrument','basic_lab_item','basic_specimen','basic_highlow','basic_report','basic_critical','basic_permission','basic_tube_split','basic_template','basic_barcode','fee_confirm','basic_system_log','basic_protocol')" index="basic" popper-class="basic-submenu-popper">
           <template #title>基本设置[J]</template>
-          <el-menu-item index="basic-dept" @click="openDialog('dept')">科室信息设置</el-menu-item>
-          <el-menu-item index="basic-personnel" @click="openDialog('staff')">人员信息设置</el-menu-item>
-          <el-menu-item index="basic-workgroup" @click="openDialog('workgroup')">工作组别设置</el-menu-item>
-          <el-menu-item index="basic-personnel-workgroup" @click="openDialog('personnelWorkgroup')">人员工作组设置</el-menu-item>
-          <el-menu-item index="basic-patient-category" @click="openDialog('patientCategory')">病人类别设置</el-menu-item>
-          <el-menu-item index="basic-instrument" @click="openDialog('instrument')">仪器设备设置</el-menu-item>
-
-          <!-- 本阶段开发目标之外的基础设置：全部置灰不可点（明确“保留不做”） -->
-          <el-menu-item index="basic-instrument-range" disabled>仪器号段设置</el-menu-item>
-          <el-menu-item index="basic-test-items" disabled>检验项目设置</el-menu-item>
-          <el-menu-item index="basic-specimen-type" disabled>标本类型设置</el-menu-item>
-          <el-menu-item index="basic-sampling-site" disabled>采样部位设置</el-menu-item>
-          <el-menu-item index="basic-test-purpose" disabled>检验目的设置</el-menu-item>
-          <el-menu-item index="basic-common-remark" disabled>常用备注设置</el-menu-item>
-          <el-menu-item index="basic-high-low-flag" disabled>高低标志设置</el-menu-item>
-          <el-menu-item index="basic-tube-color" disabled>试管颜色设置</el-menu-item>
-          <el-menu-item index="basic-personal-params" disabled>个性化参数设置</el-menu-item>
-          <el-menu-item index="basic-report-setting" disabled>检验报告设置</el-menu-item>
-          <el-menu-item index="basic-bone-marrow" disabled>骨髓结论设置</el-menu-item>
-          <el-menu-item index="basic-bacteria-eval" disabled>细菌评价设置</el-menu-item>
-          <el-menu-item index="basic-bacteria" disabled>细菌设置</el-menu-item>
-          <el-menu-item index="basic-antibiotic" disabled>抗生素设置</el-menu-item>
-          <el-menu-item index="basic-hospital-site" disabled>医院站点设置</el-menu-item>
-          <el-menu-item index="basic-dynamic-query" disabled>动态查询设置</el-menu-item>
-          <el-menu-item index="basic-instrument-site" disabled>仪器站点设置</el-menu-item>
-          <el-menu-item index="basic-critical" disabled>特殊项目危急值设置</el-menu-item>
-          <el-menu-item index="basic-tat" disabled>项目TAT提示设置</el-menu-item>
-          <el-menu-item index="basic-result-select" disabled>常用选择结果设置</el-menu-item>
-          <el-menu-item index="basic-operator-permission" @click="openDialog('operatorPermission')">操作员权限设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_dept')" index="basic-dept" @click="openDialog('dept')">科室信息设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_staff')" index="basic-personnel" @click="openDialog('staff')">人员信息设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_workgroup')" index="basic-workgroup" @click="openDialog('workgroup')">工作组别设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_workgroup')" index="basic-personnel-workgroup" @click="openDialog('personnelWorkgroup')">人员工作组设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_workgroup')" index="basic-patient-category" @click="openDialog('patientCategory')">病人类别设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_instrument')" index="basic-instrument" @click="openDialog('instrument')">仪器设备设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_instrument')" index="basic-instrument-range" disabled>仪器号段设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_lab_item')" index="basic-lab-item-setting" @click="openDialog('labItem')">检验项目设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_specimen')" index="basic-specimen-type" @click="openDialog('specimenType')">标本类型设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_specimen')" index="basic-sampling-site" disabled>采样部位设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_specimen')" index="basic-test-purpose" disabled>检验目的设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_specimen')" index="basic-common-remark" disabled>常用备注设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_highlow')" index="basic-high-low-flag" @click="openDialog('highLowFlag')">高低标志设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_specimen')" index="basic-tube-color" @click="openDialog('tubeColor')">试管颜色设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_specimen')" index="basic-personal-params" disabled>个性化参数设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_report')" index="basic-report-setting" @click="openDialog('reportSetting')">检验报告设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_report')" index="basic-bone-marrow" disabled>骨髓结论设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_report')" index="basic-bacteria-eval" disabled>细菌评价设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_report')" index="basic-bacteria" disabled>细菌设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_report')" index="basic-antibiotic" disabled>抗生素设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_report')" index="basic-hospital-site" disabled>医院站点设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_report')" index="basic-dynamic-query" disabled>动态查询设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_report')" index="basic-instrument-site" disabled>仪器站点设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_critical')" index="basic-critical" @click="openDialog('criticalValue')">特殊项目危急值设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_critical')" index="basic-result-select" disabled>常用选择结果设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_permission')" index="basic-operator-permission" @click="openDialog('operatorPermission')">操作员权限设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_tube_split')" index="basic-tube-split" @click="openDialog('tubeSplit')">自动分管设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_template')" index="basic-report-template" @click="openDialog('reportTemplate')">报告模板设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_barcode')" index="basic-barcode" @click="openDialog('barcode')">条码设置</el-menu-item>
+          <el-menu-item v-if="hasMenu('fee_confirm')" index="basic-billing" @click="openDialog('billing')">收费管理</el-menu-item>
+          <el-menu-item v-if="hasMenu('basic_instrument')" index="basic-protocol" @click="openDialog('protocol')">通信协议</el-menu-item>
         </el-sub-menu>
         
         <!-- 空菜单：其它工具 -->
@@ -172,10 +180,10 @@
         <span class="tb-text">回顾</span>
       </button>
       <button 
-        class="tb-btn tb-disabled" 
+        class="tb-btn" 
         type="button" 
         title="提取" 
-        disabled
+        @click.prevent="openExtractWizard"
       >
         <span class="tb-icon i-extract"></span>
         <span class="tb-text">提取</span>
@@ -187,10 +195,10 @@
         <span class="tb-text">锁定</span>
       </button>
       <button 
-        class="tb-btn tb-disabled" 
+        class="tb-btn" 
         type="button" 
         title="报告查询" 
-        disabled
+        @click="openDialog('reportQuery')"
       >
         <span class="tb-icon i-report-search"></span>
         <span class="tb-text">报告查询</span>
@@ -367,13 +375,32 @@
     <StaffGroupDialog v-model="dialogs.personnelWorkgroup" />
     <WorkgroupSettingDialog v-model="dialogs.workgroup" />
     <PatientCategorySettingDialog v-model="dialogs.patientCategory" />
-    <InstrumentSettingDialog v-model="dialogs.instrument" />
+    <InstrumentSettingDialog v-model="dialogs.instrument" :default-tab="instrumentDefaultTab" />
     <OperatorPermissionDialog v-model="dialogs.operatorPermission" />
+    <LabItemSettingDialog v-model="dialogs.labItem" />
+    <SpecimenTypeSettingDialog v-model="dialogs.specimenType" />
+    <HighLowFlagSettingDialog v-model="dialogs.highLowFlag" />
     <InstrumentSelectionDialog 
       v-model="dialogs.instrumentSelection"
       :allow-cancel="false"
       @select="handleInstrumentSelected"
     />
+    <BatchPrintDialog v-model="dialogs.batchPrint" :pre-selected-ids="batchPrintSelectedIds" :initial-date="selectedDate" @printed="handleBatchPrintPrinted" />
+    <ReportQueryDialog v-model="dialogs.reportQuery" />
+    <ExtractWizardDialog v-model="dialogs.extractWizard" :current-device="selectedDevice" @extracted="handleExtractWizardExtracted" />
+    <ReportTemplateDialog v-model="dialogs.reportTemplate" />
+    <BarcodeDialog v-model="dialogs.barcode" />
+    <StatisticsDialog v-model="dialogs.statistics" />
+    <CriticalValueDialog v-model="dialogs.criticalValue" />
+    <CustomReportDialog v-model="dialogs.customReport" />
+    <TubeSplitDialog v-model="dialogs.tubeSplit" />
+    <TubeColorSettingDialog v-model="dialogs.tubeColor" />
+    <ReportSettingDialog v-model="dialogs.reportSetting" />
+    <MaterialFeeDialog v-model="dialogs.materialFee" />
+    <BillingDialog v-model="dialogs.billing" />
+    <SystemLogDialog v-model="dialogs.systemLog" />
+    <ProtocolDialog v-model="dialogs.protocol" />
+    <TatSettingDialog v-model="dialogs.tatSetting" />
     
     <!-- 日期选择对话框 -->
     <el-dialog v-model="datePickerDialogVisible" title="选择日期" width="320px" :close-on-click-modal="false">
@@ -396,9 +423,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
+import emitter, { onBatchPrintDialog } from '../utils/eventBus'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
+import { useInstrumentStore } from '../utils/instrumentStore'
 import EngineerSettingDialog from '../components/dialogs/EngineerSettingDialog.vue'
 import SystemLockDialog from '../components/dialogs/SystemLockDialog.vue'
 import PasswordChangeDialog from '../components/dialogs/PasswordChangeDialog.vue'
@@ -413,15 +442,37 @@ import WorkgroupSettingDialog from '../components/dialogs/WorkgroupSettingDialog
 import PatientCategorySettingDialog from '../components/dialogs/PatientCategorySettingDialog.vue'
 import InstrumentSettingDialog from './main/settings/InstrumentSettingDialog.vue'
 import OperatorPermissionDialog from '../components/dialogs/OperatorPermissionDialog.vue'
+import LabItemSettingDialog from '../components/dialogs/LabItemSettingDialog.vue'
+import SpecimenTypeSettingDialog from '../components/dialogs/SpecimenTypeSettingDialog.vue'
+import HighLowFlagSettingDialog from '../components/dialogs/HighLowFlagSettingDialog.vue'
 import InstrumentSelectionDialog from '../components/dialogs/InstrumentSelectionDialog.vue'
+import BatchPrintDialog from '../components/dialogs/BatchPrintDialog.vue'
+import ReportQueryDialog from '../components/dialogs/ReportQueryDialog.vue'
+import ExtractWizardDialog from '../components/dialogs/ExtractWizardDialog.vue'
+import ReportTemplateDialog from '../components/dialogs/ReportTemplateDialog.vue'
+import BarcodeDialog from '../components/dialogs/BarcodeDialog.vue'
+import StatisticsDialog from '../components/dialogs/StatisticsDialog.vue'
+import CriticalValueDialog from '../components/dialogs/CriticalValueDialog.vue'
+import CustomReportDialog from '../components/dialogs/CustomReportDialog.vue'
+import TubeSplitDialog from '../components/dialogs/TubeSplitDialog.vue'
+import TubeColorSettingDialog from '../components/dialogs/TubeColorSettingDialog.vue'
+import ReportSettingDialog from '../components/dialogs/ReportSettingDialog.vue'
+import MaterialFeeDialog from '../components/dialogs/MaterialFeeDialog.vue'
+import BillingDialog from '../components/dialogs/BillingDialog.vue'
+import SystemLogDialog from '../components/dialogs/SystemLogDialog.vue'
+import ProtocolDialog from '../components/dialogs/ProtocolDialog.vue'
+import TatSettingDialog from '../components/dialogs/TatSettingDialog.vue'
 const router = useRouter()
 const currentUser = ref(null)
+const userPermissions = ref(null)
 const selectedInstrument = ref('')
 const selectedInstrumentInfo = ref(null) // 存储选中的检验科室完整信息
 const selectedDevice = ref(null) // 存储选中的仪器设备完整信息
 const lastDevice = ref(null) // 上次使用的仪器设备（用于快捷继续使用）
 const currentView = ref('')
 const activeMenu = ref('')
+const batchPrintSelectedIds = ref([])
+const instrumentStore = useInstrumentStore()
 
 const dialogs = ref({
   engineer: false,
@@ -438,7 +489,26 @@ const dialogs = ref({
   patientCategory: false,
   instrument: false,
   operatorPermission: false,
-  instrumentSelection: false // 选择检验仪器对话框
+  instrumentSelection: false,
+  labItem: false,
+  specimenType: false,
+  highLowFlag: false,
+  batchPrint: false,
+  reportQuery: false,
+  extractWizard: false,
+  reportTemplate: false,
+  barcode: false,
+  statistics: false,
+  criticalValue: false,
+  customReport: false,
+  tubeSplit: false,
+  tubeColor: false,
+  reportSetting: false,
+  materialFee: false,
+  billing: false,
+  systemLog: false,
+  protocol: false,
+  tatSetting: false
 })
 
 const datePickerDialogVisible = ref(false)
@@ -464,6 +534,46 @@ const openDialog = (dialogName) => {
   if (dialogs.value[dialogName] !== undefined) {
     dialogs.value[dialogName] = true
   }
+}
+
+const instrumentDefaultTab = ref('basic')
+const openInstrumentDialog = (tab) => {
+  instrumentDefaultTab.value = tab
+  dialogs.value.instrument = true
+}
+
+// 打开批量打印对话框
+const openBatchPrintDialog = (selectedIds = [], date = '') => {
+  batchPrintSelectedIds.value = selectedIds
+  if (date) {
+    selectedDate.value = date
+  }
+  dialogs.value.batchPrint = true
+}
+
+// 打开提取向导对话框
+const openExtractWizard = () => {
+  if (!selectedDevice.value) {
+    ElMessage.warning('请先选择仪器')
+    return
+  }
+  if (toolbarHandlers.value.extract) {
+    toolbarHandlers.value.extract()
+  } else {
+    dialogs.value.extractWizard = true
+  }
+}
+
+// 提取完成后回调
+const handleExtractWizardExtracted = () => {
+  // 通知样本管理刷新数据
+  if (toolbarHandlers.value.refresh) {
+    toolbarHandlers.value.refresh()
+  }
+}
+
+const handleBatchPrintPrinted = () => {
+  // 可以在这里通知样本管理刷新数据
 }
 
 const handleMenuTodo = (name) => {
@@ -554,7 +664,21 @@ const handleAudit = () => {
   if (toolbarHandlers.value.audit) {
     toolbarHandlers.value.audit()
   } else {
-    /* TODO: 默认处理 */
+    ElMessage.info('请先进入样本录入界面')
+  }
+}
+const handleCancelAudit = () => {
+  if (toolbarHandlers.value.cancelAudit) {
+    toolbarHandlers.value.cancelAudit()
+  } else {
+    ElMessage.info('请先进入样本录入界面')
+  }
+}
+const handleModifyAudit = () => {
+  if (toolbarHandlers.value.modifyAudit) {
+    toolbarHandlers.value.modifyAudit()
+  } else {
+    ElMessage.info('请先进入样本录入界面')
   }
 }
 // 回顾：查看今日样本记录
@@ -602,14 +726,13 @@ const openQcDaily = () => {
   router.push('/main/qc?tab=entry')
 }
 
-// 质控评价（已禁用）
-const openQcEvaluation = () => {
-  // 已禁用，不跳转
-}
-
 // 打开质控分析
 const openQcAnalysis = () => {
   router.push('/main/qc?tab=analysis')
+}
+
+const openQcEvaluation = () => {
+  router.push('/main/qc?tab=evaluation')
 }
 
 // 打开查询统计
@@ -631,6 +754,27 @@ const handleMaximize = () => {
     document.exitFullscreen()
   }
 }
+
+const loadUserPermissions = async (czydm) => {
+  if (!czydm) return
+  try {
+    const { data } = await axios.get('/api/system/operator-permission/my-permissions', { params: { czydm } })
+    userPermissions.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    userPermissions.value = []
+  }
+}
+
+// 判断当前用户是否有某个菜单权限
+// admin(czydm=0001)拥有全部权限
+const hasMenu = (xldm) => {
+  if (!currentUser.value) return true
+  if (currentUser.value.czydm === '0001') return true
+  if (userPermissions.value === null) return false
+  return userPermissions.value.includes(xldm)
+}
+
+const hasAnyMenu = (...codes) => codes.some(c => hasMenu(c))
 
 const handleCloseWindow = () => {
   if (confirm('确定要退出系统吗？')) {
@@ -665,19 +809,15 @@ const openInstrumentSelection = async () => {
 }
 
 // 处理仪器设备选择（从选择仪器对话框返回的是设备，不是检验科室）
-const handleInstrumentSelected = (device) => {
+const handleInstrumentSelected = async (device) => {
   console.log('选择仪器设备:', device)
   
-  // 设备信息包含：sb_djid, sbmc, sbbm, yq_xslb等
-  // 保存设备信息
   selectedDevice.value = device
   selectedInstrument.value = device.sbmc || device.sbbm || '未知设备'
   lastDevice.value = device
   
-  // 保存到localStorage
   localStorage.setItem('selectedDevice', JSON.stringify(device))
   
-  // 同时保存检验科室信息（如果设备中有ksdm）
   if (device.ksdm) {
     const instrumentInfo = {
       ksdm: device.ksdm,
@@ -686,15 +826,16 @@ const handleInstrumentSelected = (device) => {
     localStorage.setItem('selectedInstrument', JSON.stringify(instrumentInfo))
     selectedInstrumentInfo.value = instrumentInfo
   }
+
+  await instrumentStore.loadFromDevice(device)
   
   ElMessage.success(`已选择仪器设备：${device.sbmc || device.sbbm}`)
 
-  // 选中仪器后，直接进入样本管理主界面（对齐旧系统：连上仪器即可开始样本录入）
   router.push('/main/sample')
 }
 
 // 继续使用上次仪器（从主页按钮触发）
-const continueWithLastDevice = () => {
+const continueWithLastDevice = async () => {
   if (!lastDevice.value) {
     ElMessage.warning('没有可用的历史仪器，请先选择检验仪器')
     return
@@ -702,12 +843,12 @@ const continueWithLastDevice = () => {
   selectedDevice.value = lastDevice.value
   selectedInstrument.value = lastDevice.value.sbmc || lastDevice.value.sbbm || '未知设备'
   
-  // 保存到localStorage，确保页面刷新后仍然有效
   localStorage.setItem('selectedDevice', JSON.stringify(lastDevice.value))
+
+  await instrumentStore.loadFromDevice(lastDevice.value)
   
   ElMessage.success(`已继续使用上次仪器：${selectedInstrument.value}`)
 
-  // 继续使用历史仪器时，同样直接进入样本管理界面
   router.push('/main/sample')
 }
 
@@ -718,6 +859,7 @@ const unbindInstrument = () => {
     return
   }
   selectedDevice.value = null
+  instrumentStore.clear()
   if (selectedInstrumentInfo.value) {
     selectedInstrument.value =
       selectedInstrumentInfo.value.ksmc || selectedInstrumentInfo.value.ksdm
@@ -732,6 +874,8 @@ onMounted(async () => {
   const userStr = localStorage.getItem('user')
   if (userStr) {
     currentUser.value = JSON.parse(userStr)
+    // 加载当前用户菜单权限
+    loadUserPermissions(currentUser.value.czydm)
   } else {
     // 如果没有用户信息，跳转到登录页
     window.location.href = '/login'
@@ -754,8 +898,10 @@ onMounted(async () => {
   }
   
   if (savedDevice) {
-    // 保存为“上次使用的仪器”，但不在登录时自动绑定
-    lastDevice.value = JSON.parse(savedDevice)
+    const device = JSON.parse(savedDevice)
+    lastDevice.value = device
+    selectedDevice.value = device
+    selectedInstrument.value = device.sbmc || device.sbbm || '未知设备'
   } else if (savedInstrument) {
     // 如果只选择了检验科室，显示检验科室名称
     selectedInstrument.value = selectedInstrumentInfo.value.ksmc || selectedInstrumentInfo.value.ksdm
@@ -763,6 +909,11 @@ onMounted(async () => {
   
   // 登录后不立即弹出选择仪器对话框，而是显示主页图
   // 用户需要点击"仪器[M]"菜单才会弹出选择对话框
+
+  // 监听批量打印事件
+  onBatchPrintDialog(({ selectedIds, date }) => {
+    openBatchPrintDialog(selectedIds, date)
+  })
 })
 
 // 提供工具栏处理器注册接口给子组件（在 setup 顶层）
@@ -833,10 +984,13 @@ const handleKeyDown = (event) => {
     event.preventDefault()
     handleExtract()
   }
-  // ESC - 撤销
+  // ESC - 撤销（仅在无对话框时生效）
   else if (event.key === 'Escape') {
-    event.preventDefault()
-    handleCancel()
+    const activeDialogs = document.querySelectorAll('.el-dialog__wrapper')
+    if (activeDialogs.length === 0) {
+      event.preventDefault()
+      handleCancel()
+    }
   }
 }
 </script>
@@ -922,8 +1076,8 @@ const handleKeyDown = (event) => {
   height: 40px;
 }
 
-.main-menu >>> .el-sub-menu__title,
-.main-menu >>> .el-menu-item {
+.main-menu .el-sub-menu__title,
+.main-menu .el-menu-item {
   height: 40px;
   line-height: 40px;
   padding: 0 16px;
@@ -932,28 +1086,28 @@ const handleKeyDown = (event) => {
   border-bottom: none;
 }
 
-.main-menu >>> .el-sub-menu__title:hover,
-.main-menu >>> .el-menu-item:hover:not(.is-disabled) {
+.main-menu .el-sub-menu__title:hover,
+.main-menu .el-menu-item:hover:not(.is-disabled) {
   background: #f5f7fa;
   color: #1a73e8;
 }
 
-.main-menu >>> .el-menu-item.is-disabled {
+.main-menu .el-menu-item.is-disabled {
   color: #c0c4cc;
   cursor: default;
 }
 
-.main-menu >>> .el-menu-item.is-disabled:hover {
+.main-menu .el-menu-item.is-disabled:hover {
   background: transparent;
   color: #c0c4cc;
 }
 
-.main-menu >>> .el-sub-menu.is-active .el-sub-menu__title {
+.main-menu .el-sub-menu.is-active .el-sub-menu__title {
   background: #f5f7fa;
   color: #1a73e8;
 }
 
-.main-menu >>> .el-menu--horizontal .el-sub-menu .el-menu {
+.main-menu .el-menu--horizontal .el-sub-menu .el-menu {
   background: #ffffff;
   border: 1px solid #e4e7ed;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -961,7 +1115,7 @@ const handleKeyDown = (event) => {
 }
 
 /* 下拉菜单：长列表滚动 */
-.main-menu >>> .el-menu--popup {
+.main-menu .el-menu--popup {
   max-height: calc(100vh - 140px);
   overflow-y: auto;
   overflow-x: hidden;
@@ -970,7 +1124,7 @@ const handleKeyDown = (event) => {
 }
 
 /* 系统设置：分割线 */
-.main-menu >>> .menu-sep {
+.main-menu .menu-sep {
   height: 16px !important;
   line-height: 16px !important;
   padding: 0 !important;
@@ -1454,34 +1608,34 @@ const handleKeyDown = (event) => {
 }
 
 /* 全局样式覆盖 - 现代简洁风格 */
->>> .el-dialog {
+.el-dialog {
   border: 1px solid #e4e7ed;
 }
 
->>> .el-dialog__header {
+.el-dialog__header {
   background: #ffffff;
   color: #303133;
   padding: 16px 20px;
   border-bottom: 1px solid #e4e7ed;
 }
 
->>> .el-dialog__title {
+.el-dialog__title {
   font-size: 15px;
   font-weight: 500;
 }
 
->>> .el-dialog__body {
+.el-dialog__body {
   padding: 20px;
   background: #ffffff;
 }
 
->>> .el-dialog__footer {
+.el-dialog__footer {
   padding: 12px 20px;
   background: #ffffff;
   border-top: 1px solid #e4e7ed;
 }
 
->>> .el-button {
+.el-button {
   border: 1px solid #dcdfe6;
   background: #ffffff;
   color: #606266;
@@ -1490,72 +1644,72 @@ const handleKeyDown = (event) => {
   border-radius: 4px;
 }
 
->>> .el-button:hover {
+.el-button:hover {
   border-color: #1a73e8;
   color: #1a73e8;
 }
 
->>> .el-button--primary {
+.el-button--primary {
   background: #1a73e8;
   border-color: #1a73e8;
   color: #ffffff;
 }
 
->>> .el-button--primary:hover {
+.el-button--primary:hover {
   background: #1557b0;
   border-color: #1557b0;
 }
 
->>> .el-input__wrapper {
+.el-input__wrapper {
   background: #ffffff;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   box-shadow: none;
 }
 
->>> .el-input__wrapper:hover {
+.el-input__wrapper:hover {
   border-color: #c0c4cc;
 }
 
->>> .el-input__wrapper.is-focus {
+.el-input__wrapper.is-focus {
   border-color: #1a73e8;
 }
 
->>> .el-input__inner {
+.el-input__inner {
   color: #303133;
   font-size: 13px;
 }
 
 /* 表格现代化 */
->>> .el-table {
+.el-table {
   font-size: 13px;
 }
 
->>> .el-table th {
+.el-table th {
   background: #f5f7fa;
   color: #606266;
   font-weight: 500;
 }
 
->>> .el-table tr:hover {
+.el-table tr:hover {
   background: #f5f7fa;
 }
 
->>> .el-table--border .el-table__cell {
+.el-table--border .el-table__cell {
   border-color: #ebeef5;
 }
 
 /* 下拉框现代化 */
->>> .el-select {
+.el-select {
   width: 100%;
 }
 
->>> .el-select .el-input__wrapper {
+.el-select .el-input__wrapper {
   border-radius: 4px;
 }
 
 /* 消息提示现代化 */
->>> .el-message {
+.el-message {
   border-radius: 4px;
 }
 

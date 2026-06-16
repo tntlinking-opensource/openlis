@@ -3,6 +3,24 @@
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
+
+const handleKeyDown = (event) => {
+  if (event.key === 'Escape') {
+    const activeDialogs = document.querySelectorAll('.el-dialog__wrapper')
+    if (activeDialogs.length > 0) {
+      return
+    }
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+})
 </script>
 
 <style>

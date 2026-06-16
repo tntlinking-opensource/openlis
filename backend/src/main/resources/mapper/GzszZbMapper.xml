@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.GzszZbMapper">
+
+    <select id="listCategories" resultType="map">
+        SELECT dlid, dlmc, isuse FROM gzsz_zb ORDER BY dlid
+    </select>
+
+    <insert id="insertCategory">
+        INSERT INTO gzsz_zb (dlmc, isuse) VALUES (#{dlmc}, #{isuse})
+    </insert>
+
+    <update id="updateCategory">
+        UPDATE gzsz_zb SET dlmc=#{dlmc}, isuse=#{isuse} WHERE dlid=#{dlid}
+    </update>
+
+</mapper>

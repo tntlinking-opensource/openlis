@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysBrlbMapper">
+
+    <select id="listCategories" resultType="map">
+        SELECT bm, bmsm, pym, xh, tybz FROM sys_brlb WHERE 1=1
+        <if test='brlb != null'> AND bm = #{brlb} </if>
+        <if test='keyword != null and keyword != ""'>
+            AND (bmsm LIKE CONCAT('%',#{keyword},'%') OR pym LIKE CONCAT('%',#{keyword},'%'))
+        </if>
+        <if test='tybzVal != null'> AND tybz = #{tybzVal} </if>
+        ORDER BY xh, bm
+    </select>
+
+    <select id="getNextCode" resultType="map">
+        SELECT MAX(bm) as maxbm FROM sys_brlb
+    </select>
+
+    <select id="listActiveForDropdown" resultType="map">
+        SELECT bm, bmsm, pym FROM sys_brlb WHERE tybz = 0 OR tybz IS NULL ORDER BY xh, bm
+    </select>
+
+</mapper>

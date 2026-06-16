@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtXmmrzMapper">
+
+  <select id="findByXmidAndSbDjid" resultType="java.util.Map">
+    SELECT xmid, sb_djid, mrz, mr FROM bgxt_xmmrz WHERE xmid = #{xmid} AND sb_djid = #{sbDjid}
+  </select>
+
+  <insert id="insertDefault">
+    INSERT INTO bgxt_xmmrz (xmid, sb_djid, mrz, mr) VALUES (#{xmid}, #{sbDjid}, #{mrz}, #{mr})
+  </insert>
+
+  <update id="updateDefault">
+    UPDATE bgxt_xmmrz SET mrz=#{mrz}, mr=#{mr} WHERE xmid=#{xmid} AND sb_djid=#{sbDjid}
+  </update>
+
+</mapper>

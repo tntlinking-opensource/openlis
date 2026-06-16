@@ -74,6 +74,25 @@ export function fetchQcAnalysis(params) {
   return axios.get('/api/qc/analysis', { params })
 }
 
+// 失控处理记录
+export function fetchProcessingRecords(params) {
+  return axios.get('/api/qc/processing-records', { params })
+}
+
+export function saveProcessingRecord(data) {
+  return axios.post('/api/qc/processing-records', data)
+}
+
+// 质控原始数据
+export function fetchQcData(params) {
+  return axios.get('/api/qc/qc-data', { params })
+}
+
+// Z分数多项目叠加（高/中/低浓度）
+export function fetchZScoreMulti(params) {
+  return axios.get('/api/qc/z-score-multi', { params })
+}
+
 // 所有检验项目
 export function fetchAllProjects() {
   return axios.get('/api/qc/all-projects')

@@ -16,7 +16,12 @@ public class SysJyxm {
      */
     @TableId(type = IdType.INPUT)
     private Integer xmid;
-    
+
+    /**
+     * 项目代码
+     */
+    private String xmdm;
+
     /**
      * 项目中文名称
      */

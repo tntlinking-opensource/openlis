@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtXmzhZbMapper">
+
+  <select id="listCombos" resultType="java.util.Map">
+    SELECT zhid, zhmc, pym, bbzl, gzl, sfbz, qybz, bqys, yssm
+    FROM bgxt_xmzh_zb WHERE 1=1
+    <if test="sbDjid != null">
+      AND zhid IN (SELECT zhid FROM bgxt_yqxmzh WHERE sb_djid = #{sbDjid})
+    </if>
+    <if test="keyword != null and keyword != ''">
+      AND (zhmc LIKE CONCAT('%',#{keyword},'%') OR pym LIKE CONCAT('%',#{keyword},'%'))
+    </if>
+    ORDER BY zhid
+  </select>
+
+  <select id="searchCombos" resultType="java.util.Map">
+    SELECT zhid, zhmc, pym FROM bgxt_xmzh_zb WHERE 1=1
+    <if test="name != null and name != ''">
+      AND (zhmc LIKE CONCAT('%',#{name},'%') OR pym LIKE CONCAT('%',#{name},'%'))
+    </if>
+    ORDER BY zhid LIMIT 50
+  </select>
+
+  <select id="findUnassignedCombos" resultType="java.util.Map">
+    SELECT zhid, zhmc, pym FROM bgxt_xmzh_zb WHERE zhid NOT IN
+    (SELECT zhid FROM bgxt_yqxmzh WHERE sb_djid = #{sbDjid}) ORDER BY zhid
+  </select>
+
+</mapper>

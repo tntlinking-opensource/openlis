@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8"/>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "SimSun", "宋体", serif; font-size: 12px; }
+.report { width: 100%; max-width: 700px; margin: 0 auto; padding: 20px; }
+.header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+.header h1 { font-size: 20px; margin-bottom: 5px; }
+.header .hospital { font-size: 14px; color: #666; }
+.info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.info-table td { border: 1px solid #333; padding: 5px 8px; }
+.info-table .label { background: #f0f0f0; font-weight: bold; width: 20%; }
+.result-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+.result-table th, .result-table td { border: 1px solid #333; padding: 5px 8px; }
+.result-table th { background: #f0f0f0; }
+.result-table .text-center { text-align: center; }
+.result-table .text-right { text-align: right; }
+.signature { display: flex; justify-content: space-between; margin-top: 30px; }
+.signature div { text-align: center; }
+.footer { margin-top: 20px; text-align: center; font-size: 10px; color: #999; }
+</style>
+</head>
+<body>
+<div class="report">
+  <div class="header">
+    <h1>检验报告单</h1>
+    <div class="hospital">某某医院检验科</div>
+  </div>
+
+  <table class="info-table">
+    <tr>
+      <td class="label">患者姓名</td>
+      <td>{{patientName}}</td>
+      <td class="label">性别</td>
+      <td>{{gender}}</td>
+      <td class="label">年龄</td>
+      <td>{{age}}</td>
+    </tr>
+    <tr>
+      <td class="label">科室</td>
+      <td>{{department}}</td>
+      <td class="label">床号</td>
+      <td>{{bedNo}}</td>
+      <td class="label">住院号</td>
+      <td>{{inpatientNo}}</td>
+    </tr>
+    <tr>
+      <td class="label">标本类型</td>
+      <td>{{specimenType}}</td>
+      <td class="label">采集时间</td>
+      <td>{{collectTime}}</td>
+      <td class="label">接收时间</td>
+      <td>{{receiveTime}}</td>
+    </tr>
+    <tr>
+      <td class="label">检验项目</td>
+      <td colspan="5">{{testItems}}</td>
+    </tr>
+    <tr>
+      <td class="label">临床诊断</td>
+      <td colspan="5">{{diagnosis}}</td>
+    </tr>
+  </table>
+
+  <table class="result-table">
+    <thead>
+      <tr>
+        <th>项目名称</th>
+        <th>结果</th>
+        <th>参考值</th>
+        <th>单位</th>
+        <th>提示</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each results}}
+      <tr>
+        <td>{{itemName}}</td>
+        <td class="text-center">{{value}}</td>
+        <td class="text-center">{{refValue}}</td>
+        <td class="text-center">{{unit}}</td>
+        <td class="text-center">{{flag}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <div class="signature">
+    <div>
+      <p>检验者：{{inspector}}</p>
+      <p>复核者：{{reviewer}}</p>
+    </div>
+    <div>
+      <p>报告时间：{{reportTime}}</p>
+      <p>打印时间：{{printTime}}</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    本报告仅对本次标本负责，如有疑问请在3日内联系检验科
+  </div>
+</div>
+</body>
+</html>

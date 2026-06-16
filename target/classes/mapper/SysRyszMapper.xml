@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysRyszMapper">
+
+    <select id="queryLogs" resultType="map">
+        SELECT r.czrq, c.czyxm, r.sm, r.ztid, r.czip, r.czmk
+        FROM sys_rz r
+        LEFT JOIN sys_czydm c ON r.czydm=c.czydm
+        WHERE 1=1
+        <if test='zxtid != null'> AND r.zxtid = #{zxtid} </if>
+        <if test='ztid != null'> AND r.ztid = #{ztid} </if>
+        <if test='czydm != null and czydm != ""'> AND r.czydm = #{czydm} </if>
+        <if test='beginDate != null'> AND r.czrq >= #{beginDate} </if>
+        <if test='endDate != null'> AND r.czrq &lt;= #{endDate} </if>
+        ORDER BY r.czrq DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countLogs" resultType="long">
+        SELECT COUNT(*)
+        FROM sys_rz r
+        WHERE 1=1
+        <if test='zxtid != null'> AND r.zxtid = #{zxtid} </if>
+        <if test='ztid != null'> AND r.ztid = #{ztid} </if>
+        <if test='czydm != null and czydm != ""'> AND r.czydm = #{czydm} </if>
+        <if test='beginDate != null'> AND r.czrq >= #{beginDate} </if>
+        <if test='endDate != null'> AND r.czrq &lt;= #{endDate} </if>
+    </select>
+
+    <select id="searchOperators" resultType="map">
+        SELECT czydm, czyxm FROM sys_czydm WHERE czyxm LIKE CONCAT('%',#{name},'%') ORDER BY czydm LIMIT 50
+    </select>
+
+    <select id="listOperators" resultType="map">
+        SELECT czydm, czyxm FROM sys_czydm ORDER BY czydm LIMIT 50
+    </select>
+
+</mapper>

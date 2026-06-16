@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysCjdzbMapper">
+
+    <select id="findItemsByInstrument" resultType="map">
+        SELECT dzb.sb_djid, dzb.xmid, COALESCE(dzb.xmdm, '') as xmdm, dzb.xs, dzb.dyxh, dzb.yqxmdw, dzb.xmjc,
+               jf.xmzwmc, jf.xmdw, jf.pym, jf.xmjd, jf.jsbz
+        FROM sys_cjdzb dzb
+        LEFT JOIN sys_jyxm_full jf ON dzb.xmid = jf.xmid
+        WHERE dzb.sb_djid = #{sbDjid}
+        ORDER BY dzb.dyxh
+    </select>
+
+    <select id="findInstrumentsByItem" resultType="map">
+        SELECT dzb.sb_djid, dzb.xmid, COALESCE(dzb.xmdm, '') as xmdm, dzb.xs, dzb.dyxh,
+               sb.sbmc, sb.sbbm, sb.pym
+        FROM sys_cjdzb dzb
+        LEFT JOIN sys_sbdjb sb ON dzb.sb_djid = sb.sb_djid
+        WHERE dzb.xmid = #{xmid}
+        ORDER BY dzb.dyxh
+    </select>
+
+    <select id="existsBySbDjidAndXmid" resultType="map">
+        SELECT sb_djid FROM sys_cjdzb WHERE sb_djid = #{sbDjid} AND xmid = #{xmid}
+    </select>
+
+    <insert id="insertCoeff">
+        INSERT INTO sys_cjdzb (sb_djid, xmid, xmdm, xs)
+        VALUES (#{sbDjid}, #{xmid}, #{xmdm}, #{xs})
+    </insert>
+
+    <update id="updateCoeff">
+        UPDATE sys_cjdzb SET xs = #{xs} WHERE sb_djid = #{sbDjid} AND xmid = #{xmid}
+    </update>
+
+    <update id="updateInstItem">
+        UPDATE sys_cjdzb
+        SET xmdm = #{xmbm},
+            xs = #{xs},
+            yqxmdw = #{yqxmdw},
+            xmjc = #{xmjc}
+        WHERE sb_djid = #{sbDjid} AND xmid = #{xmid}
+    </update>
+
+    <delete id="deleteByInstrumentAndItem">
+        DELETE FROM sys_cjdzb WHERE sb_djid = #{sbDjid} AND xmid = #{xmid}
+    </delete>
+
+    <select id="getMaxDyxhBySbDjid" resultType="java.lang.Integer">
+        SELECT MAX(dyxh) FROM sys_cjdzb WHERE sb_djid = #{sbDjid}
+    </select>
+
+    <select id="findCoefficientsByInstrument" resultType="map">
+        SELECT dzb.sb_djid, dzb.xmid, COALESCE(dzb.xmdm, '') as xmdm,
+               COALESCE(dzb.xs, 1.00) as xs, dzb.dyxh, dzb.yqxmdw, dzb.xmjc,
+               jf.xmzwmc, jf.xmdw, jf.pym, jf.xmjd, jf.jsbz
+        FROM sys_cjdzb dzb
+        LEFT JOIN sys_jyxm_full jf ON dzb.xmid = jf.xmid
+        WHERE dzb.sb_djid = #{sbDjid}
+        ORDER BY dzb.dyxh
+    </select>
+
+    <insert id="batchUpsertCoefficients">
+        INSERT INTO sys_cjdzb (sb_djid, xmid, xmdm, xs, dyxh)
+        VALUES
+        <foreach collection="items" item="item" separator=",">
+            (#{sbDjid}, #{item.xmid}, #{item.xmdm}, #{item.xs}, 0)
+        </foreach>
+        ON DUPLICATE KEY UPDATE xs = VALUES(xs), xmdm = VALUES(xmdm)
+    </insert>
+
+</mapper>

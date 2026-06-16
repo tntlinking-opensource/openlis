@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtJyjgMapper">
+
+  <select id="countByBrxxId" resultType="java.lang.Integer">
+    SELECT COUNT(1) FROM bgxt_jyjg WHERE brxx_id = #{brxxId}
+  </select>
+
+  <select id="countEmptyByBrxxId" resultType="java.lang.Integer">
+    SELECT COUNT(1) FROM bgxt_jyjg WHERE brxx_id = #{brxxId} AND IFNULL(TRIM(jyjg), '') = ''
+  </select>
+
+  <select id="selectNegativeResults" resultType="java.util.Map">
+    SELECT jg.xmdm, xm.xmzwmc, jg.jyjg
+    FROM bgxt_jyjg jg LEFT JOIN sys_jyxm xm ON jg.xmdm=xm.xmdm
+    WHERE jg.brxx_id=#{brxxId} AND jg.jyjg REGEXP '^-?[0-9]+(\\.[0-9]+)?$' AND CAST(jg.jyjg AS DECIMAL) &lt; 0 LIMIT 10
+  </select>
+
+  <select id="selectResultsByBrxxId" resultType="java.util.Map">
+    SELECT jg.xmdm AS code,
+           jg.zhid,
+           COALESCE(xm.xmzwmc, jg.xmzwmc, '') AS name,
+           COALESCE(xm.xmdw, jg.jldw, '') AS unit,
+           COALESCE(jg.jyjg, '') AS result,
+           COALESCE(jg.ckz, '') AS refRange,
+           jg.bjzdx AS criticalLow,
+           jg.bjzgx AS criticalHigh,
+           COALESCE(jg.gdbj, '') AS highLowFlag,
+           xm.xmid AS xmid
+    FROM bgxt_jyjg jg
+    LEFT JOIN (
+      SELECT xmdm, xmzwmc, xmdw, xmid,
+             ROW_NUMBER() OVER (PARTITION BY xmdm ORDER BY xmid) as rn
+      FROM sys_jyxm_full
+    ) xm ON jg.xmdm = xm.xmdm AND xm.rn = 1
+    WHERE jg.brxx_id = #{brxxId}
+    ORDER BY jg.id
+  </select>
+
+  <select id="selectReportResultsByBrxxId" resultType="java.util.Map">
+    SELECT jg.xmdm, jg.xmzwmc, jg.jyjg, IFNULL(jg.jldw, mx2.xmdw) AS jldw,
+           IFNULL(jg.ckz,'') AS ckz, jg.gdbj, jg.bjzdx, jg.bjzgx
+    FROM bgxt_jyjg jg
+    LEFT JOIN (
+      SELECT xmdm, MAX(xmdw) AS xmdw FROM bgxt_xmzh_mx GROUP BY xmdm
+    ) mx2 ON jg.xmdm = mx2.xmdm
+    WHERE jg.brxx_id=#{brxxId} ORDER BY jg.id
+  </select>
+
+  <delete id="deleteByBrxxId">
+    DELETE FROM bgxt_jyjg WHERE brxx_id = #{brxxId}
+  </delete>
+
+  <insert id="insertResult">
+    INSERT INTO bgxt_jyjg (brxx_id, xmdm, xmzwmc, jyjg, jldw, ckz, ckzgx, ckzdx, bjzgx, bjzdx, gdbj)
+    SELECT #{brxxId}, COALESCE(jf.xmdm, CAST(#{xmid} AS CHAR)), COALESCE(jf.xmzwmc, ''), #{jyjg}, COALESCE(jf.xmdw, ''), #{ckz}, #{ckzgx}, #{ckzdx}, #{bjzgx}, #{bjzdx}, #{gdbj}
+    FROM sys_jyxm_full jf WHERE jf.xmid = #{xmid} LIMIT 1
+  </insert>
+
+  <insert id="insertExtractResult">
+    INSERT INTO bgxt_jyjg (brxx_id, xmdm, xmzwmc, jyjg, jldw, ckz, ckzgx, ckzdx, bjzgx, bjzdx, gdbj, cjmxid, czri)
+    SELECT #{brxxId}, COALESCE(jf.xmdm, CAST(#{xmid} AS CHAR)), COALESCE(jf.xmzwmc, ''), #{jyjg}, COALESCE(jf.xmdw, ''), #{ckz}, #{ckzgx}, #{ckzdx}, #{bjzgx}, #{bjzdx}, #{gdbj}, #{cjmxid}, NOW()
+    FROM sys_jyxm_full jf WHERE jf.xmid = #{xmid} LIMIT 1
+  </insert>
+
+  <update id="updateExtractResult">
+    UPDATE bgxt_jyjg jg
+    JOIN (SELECT xmid, MAX(xmdm) AS xmdm, MAX(xmzwmc) AS xmzwmc, MAX(xmdw) AS xmdw FROM sys_jyxm_full WHERE xmid = #{xmid} GROUP BY xmid) jf ON jg.xmdm = jf.xmdm
+    SET jg.jyjg=#{jyjg}, jg.xmzwmc=COALESCE(jf.xmzwmc, jg.xmzwmc), jg.jldw=COALESCE(jf.xmdw, jg.jldw),
+        jg.ckz=#{ckz}, jg.ckzgx=#{ckzgx}, jg.ckzdx=#{ckzdx}, jg.bjzgx=#{bjzgx}, jg.bjzdx=#{bjzdx}, jg.gdbj=#{gdbj},
+        jg.cjmxid=#{cjmxid}
+    WHERE jg.brxx_id=#{brxxId}
+  </update>
+
+  <select id="countByBrxxIdAndXmid" resultType="java.lang.Integer">
+    SELECT COUNT(*) FROM bgxt_jyjg jg
+    JOIN (SELECT MAX(xmdm) AS xmdm FROM sys_jyxm_full WHERE xmid = #{xmid} GROUP BY xmid) jf ON jg.xmdm = jf.xmdm
+    WHERE jg.brxx_id = #{brxxId}
+  </select>
+
+  <insert id="insertJyjgLog">
+    INSERT INTO bgxt_jyjglog (brxx_id, xmid, jyjg, gdbj, ckz, czri)
+    SELECT jg.brxx_id, jf.xmid, jg.jyjg, jg.gdbj, jg.ckz, NOW()
+    FROM bgxt_jyjg jg
+    JOIN sys_jyxm_full jf ON jg.xmdm = jf.xmdm
+    WHERE jg.brxx_id = #{brxxId}
+  </insert>
+
+  <delete id="deleteDuplicateByBrxxIdAndXmid">
+    DELETE jg FROM bgxt_jyjg jg
+    JOIN sys_jyxm_full jf ON jg.xmdm = jf.xmdm
+    WHERE jg.brxx_id = #{brxxId} AND jf.xmid = #{xmid}
+    AND jg.id NOT IN (SELECT MAX(id) FROM bgxt_jyjg WHERE brxx_id = #{brxxId} GROUP BY xmdm)
+  </delete>
+
+</mapper>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtXmzhMxMapper">
+
+  <select id="findXmzwmcById" resultType="java.lang.String">
+    SELECT xmzwmc FROM bgxt_xmzh_mx WHERE CAST(id AS CHAR) = #{id} COLLATE utf8mb4_unicode_ci LIMIT 1
+  </select>
+
+  <select id="findXmInfoById" resultType="java.util.Map">
+    SELECT xmzwmc, xmdw FROM bgxt_xmzh_mx WHERE CAST(id AS CHAR) = #{id} COLLATE utf8mb4_unicode_ci LIMIT 1
+  </select>
+
+  <select id="findAvailableProjects" resultType="java.util.Map">
+    SELECT mx.id AS xmid, mx.xmdm, mx.xmzwmc, mx.xmdw
+    FROM bgxt_xmzh_mx mx
+    WHERE mx.id NOT IN (SELECT CAST(xmid AS CHAR) FROM zk_nyzkxm WHERE zkpid = #{zkpid})
+    GROUP BY mx.id, mx.xmdm, mx.xmzwmc, mx.xmdw
+    ORDER BY mx.xmzwmc, mx.xmdm LIMIT 200
+  </select>
+
+  <select id="findAllProjects" resultType="java.util.Map">
+    SELECT mx.id AS xmid, mx.xmdm, mx.xmzwmc, mx.xmdw
+    FROM bgxt_xmzh_mx mx
+    GROUP BY mx.id, mx.xmdm, mx.xmzwmc, mx.xmdw
+    ORDER BY mx.xmzwmc, mx.xmdm LIMIT 200
+  </select>
+
+  <select id="getComboItems" resultType="java.util.Map">
+    SELECT mx.id, mx.zhid, mx.xmid, mx.mrjg, mx.sb_djid, mx.bz,
+        jf.xmzwmc, jf.xmdm, jf.xmdw, jf.pym
+    FROM bgxt_xmzh_mx mx
+    LEFT JOIN sys_jyxm_full jf ON mx.xmid = jf.xmid
+    WHERE mx.zhid = #{zhid} ORDER BY mx.id
+  </select>
+
+  <select id="existsByZhidAndXmid" resultType="java.util.Map">
+    SELECT id FROM bgxt_xmzh_mx WHERE zhid = #{zhid} AND xmid = #{xmid}
+  </select>
+
+  <select id="getMaxIdByZhid" resultType="java.lang.Integer">
+    SELECT IFNULL(MAX(id), 0) FROM bgxt_xmzh_mx WHERE zhid = #{zhid}
+  </select>
+
+  <select id="getGlobalMaxId" resultType="java.lang.Integer">
+    SELECT IFNULL(MAX(id), 0) FROM bgxt_xmzh_mx
+  </select>
+
+  <insert id="insertComboItem">
+    INSERT INTO bgxt_xmzh_mx (id, zhid, xmid, mrjg, sb_djid, bz) VALUES (#{id}, #{zhid}, #{xmid}, #{mrjg}, #{sbDjid}, #{bz})
+  </insert>
+
+  <delete id="removeComboItem">
+    DELETE FROM bgxt_xmzh_mx WHERE zhid = #{zhid} AND xmid = #{xmid}
+  </delete>
+
+  <update id="reorderComboItem">
+    UPDATE bgxt_xmzh_mx SET id = #{order} WHERE zhid = #{zhid} AND xmid = #{xmid}
+  </update>
+
+  <insert id="copyComboItems">
+    INSERT INTO bgxt_xmzh_mx (id, zhid, xmid, mrjg, sb_djid, bz)
+    SELECT (SELECT IFNULL(MAX(id),0) FROM bgxt_xmzh_mx WHERE zhid=#{targetZhid}) + mx.id,
+           #{targetZhid}, mx.xmid, mx.mrjg, mx.sb_djid, mx.bz
+    FROM bgxt_xmzh_mx mx WHERE mx.zhid = #{sourceZhid} AND mx.xmid NOT IN
+    (SELECT xmid FROM bgxt_xmzh_mx WHERE zhid = #{targetZhid})
+  </insert>
+
+  <delete id="deleteByZhid">
+    DELETE FROM bgxt_xmzh_mx WHERE zhid = #{zhid}
+  </delete>
+
+  <select id="selectByXmid" resultType="map">
+    SELECT mx.zhid, zb.zhmc, zb.pym
+    FROM bgxt_xmzh_mx mx
+    LEFT JOIN bgxt_xmzh_zb zb ON mx.zhid = zb.zhid
+    WHERE mx.xmid = #{xmid}
+    ORDER BY mx.zhid
+  </select>
+
+  <insert id="insertXmidZhid">
+    INSERT INTO bgxt_xmzh_mx (xmid, zhid) VALUES (#{xmid}, #{zhid})
+  </insert>
+
+  <delete id="deleteByXmidAndZhid">
+    DELETE FROM bgxt_xmzh_mx WHERE xmid = #{xmid} AND zhid = #{zhid}
+  </delete>
+
+</mapper>

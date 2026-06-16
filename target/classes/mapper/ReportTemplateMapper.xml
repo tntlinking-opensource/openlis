@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.ReportTemplateMapper">
+
+    <select id="listAll" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE status = 1
+        ORDER BY template_id
+    </select>
+
+    <select id="search" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE status = 1
+        AND (template_name LIKE CONCAT('%', #{keyword}, '%')
+             OR template_code LIKE CONCAT('%', #{keyword}, '%')
+             OR description LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY template_id
+    </select>
+
+    <select id="getById" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE template_id = #{templateId}
+    </select>
+
+    <select id="getDefaultTemplate" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE mr = 1
+        ORDER BY status DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="map" useGeneratedKeys="true" keyProperty="templateId">
+        INSERT INTO sys_report_template (
+            template_name,
+            template_type,
+            template_code,
+            description,
+            config,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status
+        ) VALUES (
+            #{templateName},
+            #{templateType},
+            #{templateCode},
+            #{description},
+            #{config},
+            #{mr},
+            #{sycx},
+            #{czyxm},
+            NOW(),
+            1
+        )
+    </insert>
+
+    <update id="update" parameterType="map">
+        UPDATE sys_report_template SET
+            template_name = #{templateName},
+            template_type = #{templateType},
+            template_code = #{templateCode},
+            description = #{description},
+            config = #{config},
+            mr = #{mr},
+            sycx = #{sycx},
+            czyxm = #{czyxm},
+            gxrq = NOW()
+        WHERE template_id = #{templateId}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM sys_report_template WHERE template_id = #{templateId}
+    </delete>
+
+    <update id="clearOtherMr">
+        UPDATE sys_report_template SET mr = 0 WHERE template_id != #{templateId}
+    </update>
+
+    <update id="updateMr">
+        UPDATE sys_report_template SET mr = #{mr} WHERE template_id = #{templateId}
+    </update>
+
+    <select id="getTemplateByBbzl" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            sb_djid as sbDjid,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE status = 1
+        AND JSON_CONTAINS(bbzl, CONCAT('"', #{bbzl}, '"'))
+        ORDER BY mr DESC, status DESC
+        LIMIT 1
+    </select>
+
+    <select id="getTemplateBySbDjid" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            sb_djid as sbDjid,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE status = 1
+        AND sb_djid = #{sbDjid}
+        ORDER BY mr DESC
+        LIMIT 1
+    </select>
+
+    <select id="getTemplateBySbDjidAndBbzl" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            sb_djid as sbDjid,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE status = 1
+        AND sb_djid = #{sbDjid}
+        AND JSON_CONTAINS(bbzl, CONCAT('"', #{bbzl}, '"'))
+        ORDER BY mr DESC
+        LIMIT 1
+    </select>
+
+    <select id="getTemplateByBgbhBgmc" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            sb_djid as sbDjid,
+            bgbh,
+            bgmc,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE status = 1
+        AND bgbh = #{bgbh}
+        AND bgmc = #{bgmc}
+        ORDER BY mr DESC
+        LIMIT 1
+    </select>
+
+    <select id="getTemplateByCode" resultType="map">
+        SELECT
+            template_id as templateId,
+            template_name as templateName,
+            template_type as templateType,
+            template_code as templateCode,
+            description,
+            html_content as htmlContent,
+            config,
+            bbzl,
+            sb_djid as sbDjid,
+            bgbh,
+            bgmc,
+            mr,
+            sycx,
+            czyxm,
+            gxrq,
+            status,
+            create_time as createTime,
+            update_time as updateTime
+        FROM sys_report_template
+        WHERE status = 1
+        AND template_code = #{templateCode}
+        LIMIT 1
+    </select>
+
+</mapper>

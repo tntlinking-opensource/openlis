@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysKsszMapper">
+
+    <select id="findAll" resultType="map">
+        SELECT ksid, ksdm, ksmc, pym, ksxz, zxbz, sybz FROM sys_kssz ORDER BY ksdm
+    </select>
+
+    <select id="findByKsdm" resultType="map">
+        SELECT ksid FROM sys_kssz WHERE ksdm = #{ksdm}
+    </select>
+
+    <select id="findOneByKsdm" resultType="map">
+        SELECT ksid, ksdm, ksmc, pym, ksxz, zxbz, sybz FROM sys_kssz WHERE ksdm = #{ksdm}
+    </select>
+
+    <insert id="insertDept">
+        INSERT INTO sys_kssz (ksdm, ksmc, pym, ksxz, zxbz, sybz)
+        VALUES (#{ksdm}, #{ksmc}, #{pym}, #{ksxz}, #{zxbz}, #{sybz})
+    </insert>
+
+    <update id="updateByKsdm">
+        UPDATE sys_kssz
+        SET ksmc=#{ksmc}, pym=#{pym}, ksxz=#{ksxz}, zxbz=#{zxbz}, sybz=#{sybz}
+        WHERE ksdm=#{ksdm}
+    </update>
+
+    <delete id="cleanupGarbled">
+        DELETE FROM sys_kssz WHERE ksmc IS NOT NULL AND ksmc != '' AND HEX(ksmc) REGEXP '[^0-9A-F]'
+    </delete>
+
+    <select id="selectActiveDepartments" resultType="map">
+        SELECT ksdm, ksmc FROM sys_kssz WHERE sybz = 1 ORDER BY ksdm
+    </select>
+
+</mapper>

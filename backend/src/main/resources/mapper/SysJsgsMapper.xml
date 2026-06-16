@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysJsgsMapper">
+    <select id="findBySbDjidAndXmid" resultType="map">
+        SELECT
+            a.gs_id as gsId,
+            a.sb_djid as sbDjid,
+            a.xmid,
+            a.bds,
+            a.bdssm,
+            b.xmzwmc as xmzwmc
+        FROM sys_jsgs a
+        LEFT JOIN sys_jyxm_full b ON a.xmid = b.xmid
+        WHERE a.sb_djid = #{sbDjid} AND a.xmid = #{xmid}
+    </select>
+
+    <insert id="saveOrUpdate" parameterType="map">
+        INSERT INTO sys_jsgs (sb_djid, xmid, bds, bdssm)
+        VALUES (#{sbDjid}, #{xmid}, #{bds}, #{bdssm})
+        ON DUPLICATE KEY UPDATE bds = #{bds}, bdssm = #{bdssm}
+    </insert>
+
+    <select id="findBySbDjid" resultType="map">
+        SELECT
+            CONCAT(COALESCE(b.xmzwmc, b.xmdm, CONCAT('项目', a.xmid)), '=', a.bdssm) as jsgs,
+            a.gs_id as gsId,
+            a.xmid,
+            a.bds,
+            COALESCE(b.xmzwmc, b.xmdm) as xmzwmc,
+            a.bdssm
+        FROM sys_jsgs a
+        LEFT JOIN sys_jyxm_full b ON a.xmid = b.xmid
+        WHERE a.sb_djid = #{sbDjid}
+    </select>
+
+    <delete id="deleteBySbDjidAndXmid">
+        DELETE FROM sys_jsgs WHERE sb_djid = #{sbDjid} AND xmid = #{xmid}
+    </delete>
+</mapper>

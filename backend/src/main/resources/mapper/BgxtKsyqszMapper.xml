@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtKsyqszMapper">
+
+    <!-- 查询当前科室仪器的占用情况 - 对应原始系统 bgxt_se_ksyqfp -->
+    <select id="selectAllWithAssignmentStatus" resultType="map">
+        SELECT s.sb_djid, s.sbdm, s.sbmc, s.sbbm,
+               CASE WHEN k.sb_djid IS NOT NULL THEN 1 ELSE 0 END as assigned
+        FROM sys_sbdjb s
+        LEFT JOIN bgxt_ksyqsz k ON s.sb_djid = k.sb_djid AND k.ksdm = #{ksdm}
+        WHERE s.tybz = 0
+        ORDER BY s.sb_djid
+    </select>
+
+    <!-- 插入分配记录 - 对应原始系统 bgxt_up_ksyqfp bz=1 -->
+    <insert id="insertAssignment">
+        INSERT IGNORE INTO bgxt_ksyqsz (ksdm, sb_djid)
+        VALUES (#{ksdm}, #{sbDjid})
+    </insert>
+
+    <!-- 删除分配记录 - 对应原始系统 bgxt_up_ksyqfp bz=0 -->
+    <delete id="deleteAssignment">
+        DELETE FROM bgxt_ksyqsz WHERE ksdm = #{ksdm} AND sb_djid = #{sbDjid}
+    </delete>
+
+</mapper>

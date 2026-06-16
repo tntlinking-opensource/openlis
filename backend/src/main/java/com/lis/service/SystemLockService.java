@@ -1,5 +1,6 @@
 package com.lis.service;
 
+import lombok.extern.slf4j.Slf4j;
 import com.lis.entity.SysCzydm;
 import com.lis.mapper.SysCzydmMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
  * 对应旧系统6.2系统锁定功能
  */
 @Service
+@Slf4j
 public class SystemLockService {
     
     @Autowired
@@ -24,7 +26,7 @@ public class SystemLockService {
     public boolean lockSystem(String username, String password) {
         SysCzydm user = sysCzydmMapper.selectById(username);
         if (user == null) {
-            System.out.println("系统锁定：用户不存在 - " + username);
+            log.info("系统锁定：用户不存在 - " + username);
             return false;
         }
         
@@ -32,32 +34,26 @@ public class SystemLockService {
         String czymm = user.getCzymm();
         String kl = user.getKl();
         
-        System.out.println("系统锁定 - 用户名: " + username);
-        System.out.println("系统锁定 - 输入密码: " + password);
-        System.out.println("系统锁定 - 数据库czymm: " + (czymm != null ? czymm : "(null)"));
-        System.out.println("系统锁定 - 数据库kl: " + (kl != null ? kl : "(null)"));
-        
+        log.info("系统锁定 - 用户名: " + username);        
         // 优先使用czymm（与登录逻辑一致）
         String dbPassword = null;
         if (czymm != null && !czymm.isEmpty()) {
             dbPassword = czymm;
-            System.out.println("系统锁定 - 使用czymm字段验证");
+            log.info("系统锁定 - 使用czymm字段验证");
         } else if (kl != null && !kl.isEmpty()) {
             dbPassword = kl;
-            System.out.println("系统锁定 - czymm为空，使用kl字段验证");
+            log.info("系统锁定 - czymm为空，使用kl字段验证");
         }
         
         if (dbPassword == null) {
-            System.out.println("系统锁定 - 密码字段为空");
+            log.info("系统锁定 - 密码字段为空");
             return false;
         }
         
         boolean passwordMatch = dbPassword.equals(password);
         if (passwordMatch) {
-            System.out.println("系统锁定 - 密码匹配成功");
-        } else {
-            System.out.println("系统锁定 - 密码不匹配（期望: " + dbPassword + ", 实际: " + password + "）");
-        }
+            log.info("系统锁定 - 密码匹配成功");
+        } else {        }
         
         return passwordMatch;
     }

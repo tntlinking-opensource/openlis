@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysZkpdMapper">
+
+    <select id="searchProducts" resultType="map">
+        SELECT zkpid, zkpmc, zkpmc AS zwmc, pym, zkplx, xmdm, xmzwmc, bjzl, bjzh, sccj, sxrq, zxbz, sybz
+        FROM sys_zkpd WHERE 1=1
+        <if test="sbDjid != null">AND sb_djid = #{sbDjid}</if>
+        <if test="keyword != null and keyword != ''">
+            AND (zkpmc LIKE CONCAT('%',#{keyword},'%') OR xmzwmc LIKE CONCAT('%',#{keyword},'%'))
+        </if>
+        ORDER BY zkpid DESC
+    </select>
+
+    <select id="findProductById" resultType="map">
+        SELECT zkpid, zkpmc, pym, zkplx, xmdm, xmzwmc, bjzl, bjzh, sccj, sxrq, zxbz, sybz, sb_djid, zwmc, ywmc, zkpsm, ph, syrq
+        FROM sys_zkpd WHERE zkpid = #{zkpid}
+    </select>
+
+    <insert id="insertProduct">
+        INSERT INTO sys_zkpd (sb_djid, zwmc, ywmc, zkpsm, ph, sccj, sybz, syrq)
+        VALUES (#{sbDjid}, #{zwmc}, #{ywmc}, #{zkpsm}, #{ph}, #{sccj}, #{sybz}, NOW())
+    </insert>
+
+    <update id="updateProduct">
+        UPDATE sys_zkpd
+        SET sb_djid=#{sbDjid}, zwmc=#{zwmc}, ywmc=#{ywmc}, zkpsm=#{zkpsm}, ph=#{ph}, sccj=#{sccj}, sybz=#{sybz}
+        WHERE zkpid=#{zkpid}
+    </update>
+
+    <delete id="deleteProduct">
+        DELETE FROM sys_zkpd WHERE zkpid = #{zkpid}
+    </delete>
+
+</mapper>

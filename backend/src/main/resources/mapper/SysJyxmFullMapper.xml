@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.SysJyxmFullMapper">
+
+    <select id="listTestItems" resultType="map">
+        SELECT t.xmid, t.xmdm, t.xmzwmc, t.xmywmc, t.pym, t.qtdm, t.xmdw, t.xmjd, t.xmlx,
+               t.jsbz, t.xs, t.sjxhl, t.tybz, t.dybz, t.zsbz, t.sfbz, t.gzl, t.his_fydm, t.his_jyxmmc,
+               t.zsk_xmdm, t.zsk_xmmc, t.item_type, t.lcyy
+        FROM sys_jyxm_full t
+        WHERE 1=1
+        <if test='keyword != null and keyword != ""'>
+            AND (t.xmzwmc LIKE CONCAT('%',#{keyword},'%') OR t.pym LIKE CONCAT('%',#{keyword},'%') OR t.xmdm LIKE CONCAT('%',#{keyword},'%') OR t.qtdm LIKE CONCAT('%',#{keyword},'%'))
+        </if>
+        <if test='sbDjid != null'>
+            AND t.xmid IN (SELECT xmid FROM sys_cjdzb WHERE sb_djid = #{sbDjid})
+        </if>
+        AND (t.xmdm IS NULL OR t.xmid = (SELECT MIN(t2.xmid) FROM sys_jyxm_full t2 WHERE t2.xmdm = t.xmdm))
+        ORDER BY t.xmid
+    </select>
+
+    <select id="searchTestItems" resultType="map">
+        SELECT t.xmid, t.xmdm, t.xmzwmc, t.pym, t.xmdw, t.xmjd FROM sys_jyxm_full t
+        WHERE (t.pym LIKE CONCAT('%',#{pym},'%') OR t.xmzwmc LIKE CONCAT('%',#{pym},'%') OR t.xmdm LIKE CONCAT('%',#{pym},'%'))
+        AND (t.xmdm IS NULL OR t.xmid = (SELECT MIN(t2.xmid) FROM sys_jyxm_full t2 WHERE t2.xmdm = t.xmdm))
+        ORDER BY t.xmdm LIMIT 50
+    </select>
+
+    <select id="searchTestItemsByPymAndInstrument" resultType="map">
+        SELECT t.xmid, t.xmdm, t.xmzwmc, t.pym, t.xmdw, t.xmjd FROM sys_jyxm_full t
+        WHERE (t.pym LIKE CONCAT('%',#{pym},'%') OR t.xmzwmc LIKE CONCAT('%',#{pym},'%') OR t.xmdm LIKE CONCAT('%',#{pym},'%'))
+        <if test='sbDjid != null'>
+            AND t.xmid IN (SELECT xmid FROM sys_cjdzb WHERE sb_djid = #{sbDjid})
+        </if>
+        AND (t.xmdm IS NULL OR t.xmid = (SELECT MIN(t2.xmid) FROM sys_jyxm_full t2 WHERE t2.xmdm = t.xmdm))
+        ORDER BY t.xmdm LIMIT 50
+    </select>
+
+    <select id="getItemTypes" resultType="map">
+        SELECT mx.dm, mx.dmms AS name FROM sys_tybmmx mx
+        JOIN sys_tybmzb zb ON mx.zbid = zb.zbid WHERE zb.bmdm = '13' ORDER BY mx.dm
+    </select>
+
+    <select id="countComboUsage" resultType="int">
+        SELECT COUNT(*) FROM bgxt_xmzh_mx WHERE xmid = #{xmid}
+    </select>
+
+</mapper>

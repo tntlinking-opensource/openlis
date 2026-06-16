@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtCriticalValueMapper">
+
+  <select id="selectList" resultType="java.util.Map">
+    SELECT cv.*, b.brxm, b.brxb, b.brnl, b.brlb, b.ksdm,
+           COALESCE(k.ksmc, b.ksdm) as ksmc, jf.xmzwmc
+    FROM bgxt_CriticalValue cv
+    LEFT JOIN bgxt_brxx b ON cv.report_id = b.brxx_id
+    LEFT JOIN sys_kssz k ON b.ksdm = k.ksdm
+    LEFT JOIN sys_jyxm_full jf ON cv.xmid = jf.xmid
+    WHERE cv.cancel_date IS NULL
+    <if test="beginDate != null and beginDate != ''">
+      AND cv.add_date >= #{beginDate}
+    </if>
+    <if test="endDate != null and endDate != ''">
+      AND cv.add_date &lt;= CONCAT(#{endDate}, ' 23:59:59')
+    </if>
+    ORDER BY cv.add_date DESC
+  </select>
+
+  <insert id="insert">
+    INSERT INTO bgxt_CriticalValue (report_id, critical_value, add_date, add_oper_code, add_oper_name, xmid)
+    VALUES (#{reportId}, #{criticalValue}, NOW(), #{addOperCode}, #{addOperName}, #{xmid})
+  </insert>
+
+  <update id="softDelete">
+    UPDATE bgxt_CriticalValue SET cancel_date=NOW(), cancel_oper_code=#{cancelOperCode} WHERE id=#{id}
+  </update>
+
+  <update id="processBatch">
+    UPDATE bgxt_CriticalValue SET process_date=NOW(), process_oper_name=#{processOperName}
+    WHERE id IN
+    <foreach collection="ids" item="id" open="(" separator="," close=")">
+      #{id}
+    </foreach>
+    AND process_date IS NULL AND cancel_date IS NULL
+  </update>
+
+  <sql id="dateRange">
+    cv.add_date >= #{beginDate} AND cv.add_date &lt;= CONCAT(#{endDate}, ' 23:59:59') AND cv.cancel_date IS NULL
+  </sql>
+
+  <select id="countByDateRange" resultType="java.lang.Integer">
+    SELECT COUNT(*) FROM bgxt_CriticalValue cv WHERE <include refid="dateRange"/>
+  </select>
+
+  <select id="selectStatsByDepartment" resultType="java.util.Map">
+    SELECT COALESCE(k.ksmc, b.ksdm, '未知科室') as ksmc, COUNT(*) as cnt FROM bgxt_CriticalValue cv
+    LEFT JOIN bgxt_brxx b ON cv.report_id=b.brxx_id
+    LEFT JOIN sys_kssz k ON b.ksdm=k.ksdm
+    WHERE <include refid="dateRange"/>
+    GROUP BY b.ksdm, k.ksmc
+  </select>
+
+  <select id="selectStatsByItem" resultType="java.util.Map">
+    SELECT COALESCE(jf.xmzwmc, '未知项目') as xmmc, COUNT(*) as cnt
+    FROM bgxt_CriticalValue cv
+    LEFT JOIN sys_jyxm_full jf ON cv.xmid = jf.xmid
+    WHERE <include refid="dateRange"/>
+    GROUP BY cv.xmid, jf.xmzwmc
+    ORDER BY cnt DESC
+    LIMIT 30
+  </select>
+
+  <select id="selectStatsByOperator" resultType="java.util.Map">
+    SELECT COALESCE(cv.add_oper_name, '未知') as czyxm, COUNT(*) as cnt
+    FROM bgxt_CriticalValue cv
+    WHERE <include refid="dateRange"/>
+    GROUP BY cv.add_oper_name
+    ORDER BY cnt DESC
+  </select>
+
+  <select id="selectStatsByMonth" resultType="java.util.Map">
+    SELECT DATE_FORMAT(cv.add_date, '%Y-%m') as month, COUNT(*) as cnt
+    FROM bgxt_CriticalValue cv
+    WHERE <include refid="dateRange"/>
+    GROUP BY month
+    ORDER BY month
+  </select>
+
+  <select id="selectStatsByUrgency" resultType="java.util.Map">
+    SELECT COALESCE(b.syqk, '未知') as syqk, COUNT(*) as cnt
+    FROM bgxt_CriticalValue cv
+    LEFT JOIN bgxt_brxx b ON cv.report_id = b.brxx_id
+    WHERE <include refid="dateRange"/>
+    GROUP BY b.syqk
+  </select>
+
+</mapper>

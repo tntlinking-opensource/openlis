@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lis.mapper.BgxtTsxmtatMapper">
+
+  <select id="listSettings" resultType="java.util.Map">
+    SELECT t.*, z.zhmc FROM bgxt_tsxmtat t LEFT JOIN bgxt_xmzh_zb z ON t.zhid=z.zhid ORDER BY t.sb_djid, t.syqk
+  </select>
+
+  <insert id="saveSetting">
+    INSERT INTO bgxt_tsxmtat (sb_djid, brlb, syqk, zhid, zhmc, TAT) VALUES (#{sbDjid}, #{brlb}, #{syqk}, #{zhid}, #{zhmc}, #{tat})
+    ON DUPLICATE KEY UPDATE TAT=#{tat}, zhmc=#{zhmc}
+  </insert>
+
+  <delete id="deleteSetting">
+    DELETE FROM bgxt_tsxmtat WHERE sb_djid=#{sbDjid} AND brlb=#{brlb} AND syqk=#{syqk} AND zhid=#{zhid}
+  </delete>
+
+  <update id="autoCalculateTat">
+    UPDATE bgxt_xmzh_zb SET ddsj = (SELECT AVG(TIMESTAMPDIFF(MINUTE, b.srrq, b.shrq)) + #{buffer}
+    FROM bgxt_brxx b JOIN bgxt_his_xm hx ON b.brxx_id = hx.brxx_id
+    WHERE hx.zhid = bgxt_xmzh_zb.zhid AND b.ybzt IN (2,3) AND b.shrq IS NOT NULL
+    AND b.jyrq >= DATE_SUB(NOW(), INTERVAL 30 DAY)) WHERE 1=1
+  </update>
+
+  <update id="autoCalculateTatByInstrument">
+    UPDATE bgxt_xmzh_zb SET ddsj = (SELECT AVG(TIMESTAMPDIFF(MINUTE, b.srrq, b.shrq)) + #{buffer}
+    FROM bgxt_brxx b JOIN bgxt_his_xm hx ON b.brxx_id = hx.brxx_id
+    WHERE hx.zhid = bgxt_xmzh_zb.zhid AND b.ybzt IN (2,3) AND b.shrq IS NOT NULL
+    AND b.jyrq >= DATE_SUB(NOW(), INTERVAL 30 DAY)) WHERE bgxt_xmzh_zb.zhid IN (SELECT zhid FROM bgxt_yqxmzh WHERE sb_djid = #{sbDjid})
+  </update>
+
+</mapper>

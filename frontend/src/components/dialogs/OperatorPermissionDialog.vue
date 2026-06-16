@@ -84,7 +84,10 @@
               </div>
 
               <div class="item-list">
-                <div class="list-title">菜单名称：</div>
+                <div class="list-title">菜单名称：
+                  <el-button size="small" link type="primary" @click="selectAllMenu">全选</el-button>
+                  <el-button size="small" link type="danger" @click="deselectAllMenu">全不选</el-button>
+                </div>
                 <el-table
                   :data="permissionItems"
                   height="400"
@@ -121,12 +124,15 @@
                   highlight-current-row
                   @current-change="onModuleCategorySelect"
                 >
-                  <el-table-column prop="frm_caption" label="模块分类" />
+                  <el-table-column prop="mkfl" label="模块分类" />
                 </el-table>
               </div>
 
               <div class="item-list">
-                <div class="list-title">模块名称：</div>
+                <div class="list-title">模块名称：
+                  <el-button size="small" link type="primary" @click="selectAllModule">全选</el-button>
+                  <el-button size="small" link type="danger" @click="deselectAllModule">全不选</el-button>
+                </div>
                 <el-table
                   :data="modules"
                   height="400"
@@ -200,6 +206,7 @@ const activeTab = ref('menu')
 
 // 权限变更记录（用于批量保存）
 const permissionChanges = ref([])
+const moduleChanges = ref([])
 
 // 加载操作员列表
 const loadOperators = async () => {
@@ -283,7 +290,7 @@ const loadPermissionItems = async () => {
         czydm: currentOperator.value.czydm
       }
     })
-    permissionItems.value = res.data || []
+    permissionItems.value = (res.data || []).map(item => ({ ...item, bz: !!item.bz }))
   } catch (e) {
     ElMessage.error('加载权限项失败：' + (e.response?.data?.message || e.message))
   }
@@ -330,16 +337,16 @@ const onModuleCategorySelect = (row) => {
 
 // 加载模块列表
 const loadModules = async () => {
-  if (!currentModuleCategory.value || !currentOperator.value) return
+  if (!currentModuleCategory.value || !currentOperator.value || !currentSubsystem.value) return
   try {
     const res = await axios.get('/api/system/operator-permission/modules', {
       params: {
-        frmName: currentModuleCategory.value.frm_name,
-        czydm: currentOperator.value.czydm,
-        showAll: false
+        zxtid: currentSubsystem.value.zxtid,
+        mkfl: currentModuleCategory.value.mkfl,
+        czydm: currentOperator.value.czydm
       }
     })
-    modules.value = res.data || []
+    modules.value = (res.data || []).map(item => ({ ...item, bz: !!item.bz }))
   } catch (e) {
     ElMessage.error('加载模块列表失败：' + (e.response?.data?.message || e.message))
   }
@@ -347,8 +354,18 @@ const loadModules = async () => {
 
 // 模块变更
 const onModuleChange = (row) => {
-  // 模块权限的保存逻辑待实现（需要调用 sys_in_czymkqx / sys_de_czymkqx）
-  ElMessage.info('模块权限保存功能待实现')
+  const change = moduleChanges.value.find(c => c.mkdm === row.mkdm)
+  if (change) {
+    change.bz = row.bz
+  } else {
+    moduleChanges.value.push({
+      mkdm: row.mkdm,
+      frmName: row.frm_name,
+      actionName: row.action_name,
+      caption: row.caption,
+      bz: row.bz
+    })
+  }
 }
 
 // 标签页切换
@@ -360,6 +377,42 @@ const onTabChange = (tabName) => {
   }
 }
 
+// 全选/全不选 - 菜单
+const selectAllMenu = () => {
+  permissionItems.value.forEach(item => {
+    if (!item.bz) {
+      item.bz = true
+      onPermissionItemChange(item)
+    }
+  })
+}
+const deselectAllMenu = () => {
+  permissionItems.value.forEach(item => {
+    if (item.bz) {
+      item.bz = false
+      onPermissionItemChange(item)
+    }
+  })
+}
+
+// 全选/全不选 - 模块
+const selectAllModule = () => {
+  modules.value.forEach(item => {
+    if (!item.bz) {
+      item.bz = true
+      onModuleChange(item)
+    }
+  })
+}
+const deselectAllModule = () => {
+  modules.value.forEach(item => {
+    if (item.bz) {
+      item.bz = false
+      onModuleChange(item)
+    }
+  })
+}
+
 // 保存
 const onSave = async () => {
   if (!currentOperator.value) {
@@ -368,22 +421,18 @@ const onSave = async () => {
   }
 
   if (activeTab.value === 'menu') {
-    // 保存菜单权限
     if (permissionChanges.value.length === 0) {
       ElMessage.info('没有需要保存的权限变更')
       return
     }
-
     try {
       const res = await axios.post('/api/system/operator-permission/save-menu-permissions', {
         czydm: currentOperator.value.czydm,
         items: permissionChanges.value
       })
-
       if (res.data?.success) {
         ElMessage.success('保存成功')
         permissionChanges.value = []
-        // 重新加载权限项以刷新状态
         loadPermissionItems()
       } else {
         ElMessage.error(res.data?.message || '保存失败')
@@ -392,13 +441,32 @@ const onSave = async () => {
       ElMessage.error('保存失败：' + (e.response?.data?.message || e.message))
     }
   } else {
-    ElMessage.info('模块权限保存功能待实现')
+    if (moduleChanges.value.length === 0) {
+      ElMessage.info('没有需要保存的模块权限变更')
+      return
+    }
+    try {
+      const res = await axios.post('/api/system/operator-permission/save-module-permissions', {
+        czydm: currentOperator.value.czydm,
+        items: moduleChanges.value
+      })
+      if (res.data?.success) {
+        ElMessage.success('保存成功')
+        moduleChanges.value = []
+        loadModules()
+      } else {
+        ElMessage.error(res.data?.message || '保存失败')
+      }
+    } catch (e) {
+      ElMessage.error('保存失败：' + (e.response?.data?.message || e.message))
+    }
   }
 }
 
 // 取消
 const onCancel = () => {
   permissionChanges.value = []
+  moduleChanges.value = []
   ElMessage.info('已取消')
 }
 
@@ -408,6 +476,7 @@ watch(visible, (v) => {
     loadOperators()
     loadSubsystems()
     permissionChanges.value = []
+    moduleChanges.value = []
   }
 })
 </script>
