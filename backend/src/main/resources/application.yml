@@ -5,9 +5,9 @@ spring:
   # MySQL数据库配置（当前使用）
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/lisdata?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://61.172.179.21:3306/lisdata?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: Yang434220@
+    password: xZ_TTSL123
 
   # SQL初始化配置
   sql:

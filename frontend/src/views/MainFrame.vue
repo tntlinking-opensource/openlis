@@ -766,10 +766,10 @@ const loadUserPermissions = async (czydm) => {
 }
 
 // 判断当前用户是否有某个菜单权限
-// admin(czydm=0001)拥有全部权限
+// 管理员(glybz=true)拥有全部权限
 const hasMenu = (xldm) => {
   if (!currentUser.value) return true
-  if (currentUser.value.czydm === '0001') return true
+  if (currentUser.value.glybz) return true
   if (userPermissions.value === null) return false
   return userPermissions.value.includes(xldm)
 }
